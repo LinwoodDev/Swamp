@@ -33,7 +33,7 @@ Swamp is a universal end-to-end encrypted server software that implements the cl
 - [Linwood Setonix](https://setonix.linwood.dev) to host your own card game server
 - [Linwood Butterfly](https://butterfly.linwood.dev) to collaborate with others on a shared note taking document
 
-*but you can just use implement the protocol in your own app!*
+*but you can just implement the protocol in your own app!*
 
 ---
 
