@@ -24,72 +24,148 @@ Connect to the websocket to receive real-time updates.
 
 #### Message
 
+|      |                     |                  |
+| ---- | ------------------- | ---------------- |
 | 0x00 | Player ID (2 Bytes) | Message (String) |
 
 #### Room Info Update
 
 If we change a room or request a room info.
 
+|      |                |                       |                   |                 |
+| ---- | -------------- | --------------------- | ----------------- | --------------- |
 | 0x01 | Flags (1 Byte) | Max Players (2 Bytes) | Your ID (2 Bytes) | Room ID (Bytes) |
 
 See [Room Flags](#room-flags) for more information.
 
-#### No Room
+#### Welcome
 
-If you join the server or be kicked from a room.
+If you join the server.
 
-| 0x02 | Message (optional String) |
+|      |
+| ---- |
+| 0x02 |
+
+#### Kicked from room
+
+If you are kicked from a room.
+
+|      |                 |
+| ---- | --------------- |
+| 0x03 | Reason (String) |
+
+#### Room join failed
+
+If you want to join a room but it fails.
+
+|      |               |
+| ---- | ------------- |
+| 0x04 | Reason (Byte) |
+
+##### Reasons
+
+| Reason | Description         |
+| ------ | ------------------- |
+| 0x00   | Room does not exist |
+| 0x01   | Room is full        |
+| 0x02   | Banned from room    |
+| 0xFF   | Unknown error       |
+
+#### Room creation failed
+
+If you create a room but it fails.
+
+|      |               |
+| ---- | ------------- |
+| 0x05 | Reason (Byte) |
+
+##### Reasons
+
+| Reason | Description        |
+| ------ | ------------------ |
+| 0x00   | Room limit reached |
+| 0xFF   | Unknown error      |
+
+##### Types
+
+| Type | Description             |
+| ---- | ----------------------- |
+| 0x00 | Joined websocket server |
+| 0x01 | Kicked from room        |
+| 0x02 | Room does not exist     |
+| 0x03 | Room is full            |
+| 0x04 | Room creation           |
 
 #### Player Joined
 
 *Dark Room Event*
 
-| 0x03 | Player ID (2 Bytes) |
+|      |                     |
+| ---- | ------------------- |
+| 0x06 | Player ID (2 Bytes) |
 
 #### Player Left
 
 *Dark Room Event*
 
-| 0x04 | Player ID (2 Bytes) |
+|      |                     |
+| ---- | ------------------- |
+| 0x07 | Player ID (2 Bytes) |
 
 #### Connected Players
 
 *Dark Room Event, but returns empty error if not permitted*
 
-| 0x05 | Player ID (2 Bytes) | ... |
+|      |                     | ... |
+| ---- | ------------------- | --- |
+| 0x08 | Player ID (2 Bytes) | ... |
 
 ### Available Commands
 
 #### Broadcast Message
 
+|      |                  |
+| ---- | ---------------- |
 | 0x00 | Message (String) |
 
 #### Join Room
 
+|      |                 |
+| ---- | --------------- |
 | 0x01 | Room ID (Bytes) |
 
 #### Leave Room
 
+|      |                 |
+| ---- | --------------- |
 | 0x02 | Room ID (Bytes) |
 
 #### Create Room
 
+|      |                       |
+| ---- | --------------------- |
 | 0x03 | Max Players (2 Bytes) |
 
 #### Kick Player
 
 *Host only*
 
+|      |                     |                 |
+| ---- | ------------------- | --------------- |
 | 0x04 | Player ID (2 Bytes) | Reason (String) |
 
 #### Get Connected Players
 
+|      |
+| ---- |
 | 0x05 |
 
 #### Send Message
 
 *Only available for hosts in dark rooms.*
 
+|      |                     |                  |
+| ---- | ------------------- | ---------------- |
 | 0x06 | Player ID (2 Bytes) | Message (String) |
 
 ## Room Flags{#room-flags}
