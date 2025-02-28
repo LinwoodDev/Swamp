@@ -3,5 +3,4 @@
 /// More dartdocs go here.
 library;
 
-export 'client.dart';
-export 'host.dart';
+export 'connection.dart';
