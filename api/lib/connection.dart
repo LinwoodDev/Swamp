@@ -83,6 +83,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
 
   @override
   FutureOr<void> close() {
+    super.close();
     _channel?.sink.close();
     _channel = null;
     _roomInfo = null;

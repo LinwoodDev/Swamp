@@ -50,9 +50,18 @@ If you join the server.
 
 If you are kicked from a room.
 
-|      |                 |
-| ---- | --------------- |
-| 0x03 | Reason (String) |
+|      |               |                  |
+| ---- | ------------- | ---------------- |
+| 0x03 | Reason (Byte) | Message (String) |
+
+##### Reasons
+
+| Reason | Description      |
+| ------ | ---------------- |
+| 0x00   | Room closed      |
+| 0x01   | Kicked from room |
+| 0x02   | Banned from room |
+| 0xFF   | Unknown error    |
 
 #### Room join failed
 

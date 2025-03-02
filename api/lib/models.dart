@@ -34,7 +34,7 @@ enum SwampCommand with RpcFunctionName {
   setApplication,
 }
 
-extension type RoomFlag(int value) {
+extension type const RoomFlags(int value) {
   static const darkRoomFlag = 0x01;
   static const playerVisibilityFlag = 0x02;
 
@@ -54,4 +54,26 @@ final class RoomInfo {
     required this.currentId,
     required this.roomId,
   });
+
+  factory RoomInfo.fromBytes(Uint8List data) {
+    return RoomInfo(
+      flags: data[0],
+      maxPlayers: data[1] << 8 | data[2],
+      currentId: data[3] << 8 | data[4],
+      roomId: data.sublist(5),
+    );
+  }
+
+  Uint8List toBytes() {
+    final bytes = Uint8List(5 + roomId.length);
+    bytes[0] = flags;
+    bytes[1] = maxPlayers >> 8;
+    bytes[2] = maxPlayers & 0xFF;
+    bytes[3] = currentId >> 8;
+    bytes[4] = currentId & 0xFF;
+    bytes.setAll(5, roomId);
+    return bytes;
+  }
 }
+
+enum KickReason { roomClosed, kicked, banned }

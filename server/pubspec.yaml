@@ -1,6 +1,7 @@
 name: swamp
 description: A server app using the shelf package and Docker.
 version: 1.0.0
+publish_to: none
 # repository: https://github.com/my_org/my_repo
 
 environment:
@@ -9,6 +10,23 @@ environment:
 dependencies:
   shelf: ^1.4.0
   shelf_router: ^1.1.0
+  swamp_api:
+    path: ../api
+  networker:
+    git:
+      url: https://github.com/LinwoodDev/dart_pkgs.git
+      path: packages/networker/networker
+      ref: e19c3a25196ddbe2517e99bffce951164415a4d3
+  networker_socket:
+    git:
+      url: https://github.com/LinwoodDev/dart_pkgs.git
+      path: packages/networker/networker_socket
+      ref: 83a13bc619b32398a16b44f406c06491b77f4f15
+  networker_crypto:
+    git:
+      url: https://github.com/LinwoodDev/dart_pkgs.git
+      path: packages/networker/networker_crypto
+      ref: 83a13bc619b32398a16b44f406c06491b77f4f15
 
 dev_dependencies:
   http: ^1.1.0
