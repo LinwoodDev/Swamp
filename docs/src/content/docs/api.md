@@ -24,9 +24,9 @@ Connect to the websocket to receive real-time updates.
 
 #### Message
 
-|      |                     |                  |
-| ---- | ------------------- | ---------------- |
-| 0x00 | Player ID (2 Bytes) | Message (String) |
+|      |                  |                    |                  |
+| ---- | ---------------- | ------------------ | ---------------- |
+| 0x00 | Sender (2 Bytes) | Receiver (2 Bytes) | Message (String) |
 
 #### Room Info Update
 
@@ -114,7 +114,7 @@ If you create a room but it fails.
 
 #### Connected Players
 
-*Dark Room Event, but returns empty error if not permitted*
+*Dark Room Event (toggleable), but returns empty error if not permitted*
 
 |      |                     | ... |
 | ---- | ------------------- | --- |
@@ -122,11 +122,17 @@ If you create a room but it fails.
 
 ### Available Commands
 
-#### Broadcast Message
+#### Send Message
 
-|      |                  |
-| ---- | ---------------- |
-| 0x00 | Message (String) |
+|      |                     |                  |
+| ---- | ------------------- | ---------------- |
+| 0x00 | Player ID (2 Bytes) | Message (String) |
+
+Send a message to the receiver.
+There are some special player ids:
+
+- `0` - Send to all players
+- `1` - Send to the host
 
 #### Join Room
 
@@ -160,16 +166,28 @@ If you create a room but it fails.
 | ---- |
 | 0x05 |
 
-#### Send Message
+#### Set Application
 
-*Only available for hosts in dark rooms.*
+Allows you to restrict the supported rooms.
 
-|      |                     |                  |
-| ---- | ------------------- | ---------------- |
-| 0x06 | Player ID (2 Bytes) | Message (String) |
+You can use:
+
+|      |                   |                      |
+| ---- | ----------------- | -------------------- |
+| 0x06 | Version (4 Bytes) | Application (String) |
+
+to set the application or:
+
+|      |
+| ---- |
+| 0x07 |
+
+to remove the application restriction.
 
 ## Room Flags{#room-flags}
 
-| Flag | Description                                                  |
-| ---- | ------------------------------------------------------------ |
-| 0x01 | Dark Room (Restrict some events to only be seen by the host) |
+| Flag | Description                                                                                       |
+| ---- | ------------------------------------------------------------------------------------------------- |
+| 0x01 | Dark Room (Restrict some events to only be seen by the host)                                      |
+| 0x02 | Toggle Player Visibility (On dark rooms, players can see each other, on normal rooms, they can't) |
+| 0x04 | Close Room on Host Leave (If the host leaves, the room is closed)                                 |

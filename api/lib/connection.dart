@@ -4,69 +4,20 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:networker/networker.dart';
+import 'package:swamp_api/models.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-String createRoomCode(Uint8List data) {
-  return data.map((e) => e.toRadixString(16)).join();
-}
+part 'info.dart';
 
-Uint8List parseRoomCode(String code) {
-  return Uint8List.fromList(
-    code.split('').map((e) => int.parse(e, radix: 16)).toList(),
-  );
-}
-
-final class RoomInfo {
-  final int flags;
-  final int maxPlayers;
-  final int currentId;
-  final Uint8List roomId;
-
-  RoomInfo({
-    required this.flags,
-    required this.maxPlayers,
-    required this.currentId,
-    required this.roomId,
-  });
-}
-
-final class SwampClientConnectionInfo extends ConnectionInfo {
-  final SwampConnection parent;
-  final Channel channel;
-
-  SwampClientConnectionInfo(this.parent, this.channel);
-
-  @override
-  Uri get address => parent.address;
-
-  @override
-  Future<void> close([String? message]) async {
-    final socketChannel = parent._channel;
-    if (socketChannel == null) return;
-    socketChannel.sink.add([
-      0x04,
-      channel >> 8,
-      channel & 0xFF,
-      ...?message?.codeUnits,
-    ]);
-    return socketChannel.sink.close();
-  }
-
-  @override
-  bool get isClosed => parent.clientConnections.contains(channel);
-
-  @override
-  void sendMessage(Uint8List data) {
-    final socketChannel = parent._channel;
-    if (socketChannel == null) return;
-    socketChannel.sink.add([0x06, channel >> 8, channel & 0xFF, ...data]);
-  }
-}
-
-final class SwampConnection extends NetworkerServer {
+class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
+    with
+        NetworkerBase<RpcNetworkerPacket>,
+        RpcNetworkerPipeMixin,
+        NetworkerServerMixin<SwampClientConnectionInfo, RpcNetworkerPacket>,
+        NamedRpcNetworkerPipe<SwampEvent, SwampCommand> {
   final StreamController<void> _onOpen = StreamController<void>.broadcast(),
       _onClosed = StreamController<void>.broadcast();
-  final String Function(Uint8List) roomCodeGenerator;
+  final String Function(Uint8List) roomCodeEncoder;
   final Uri server;
   final Uint8List? roomId;
 
@@ -74,27 +25,59 @@ final class SwampConnection extends NetworkerServer {
   RoomInfo? _roomInfo;
 
   @override
+  bool get isServer => false;
+  @override
+  Channel? get receiverChannel => null;
+  @override
+  RpcConfig get config => RpcConfig(channelField: false);
+
+  @override
   Uri get address {
     final id = _roomInfo?.roomId ?? roomId;
-    return server.replace(fragment: id == null ? null : roomCodeGenerator(id));
+    return server.replace(fragment: id == null ? null : roomCodeEncoder(id));
   }
 
   SwampConnection({
     required this.server,
     this.roomId,
-    this.roomCodeGenerator = createRoomCode,
-  });
+    this.roomCodeEncoder = encodeRoomCode,
+  }) {
+    _initFunctions();
+  }
 
   factory SwampConnection.build(
-    String address, {
-    Uint8List? roomId,
-    String Function(Uint8List)? roomCodeGenerator,
+    Uri address, {
+    String Function(Uint8List)? roomCodeDecoder,
+    Uint8List Function(String) parseRoomCode = decodeRoomCode,
   }) {
-    final uri = Uri.parse(address);
+    final roomId = address.hasFragment ? parseRoomCode(address.fragment) : null;
     return SwampConnection(
-      server: uri.replace(fragment: ''),
+      server: address.replace(fragment: ''),
       roomId: roomId,
-      roomCodeGenerator: roomCodeGenerator ?? createRoomCode,
+      roomCodeEncoder: roomCodeDecoder ?? encodeRoomCode,
+    );
+  }
+  static (SwampConnection, NetworkerPipe) buildSecure(
+    Uri address, {
+    String Function(Uint8List)? roomCodeEncoder,
+    Uint8List Function(String) parseRoomCode = decodeRoomCode,
+    String split = ':',
+  }) {
+    var roomId = address.hasFragment ? address.fragment : null;
+    var pipe = SimpleNetworkerPipe();
+    if (roomId != null) {
+      var splitted = roomId.split(split);
+      roomId = splitted[0];
+      // var key = splitted.elementAtOrNull(1);
+      // TODO: Add end-to-end encryption
+    }
+    return (
+      SwampConnection(
+        server: address.replace(fragment: ''),
+        roomId: roomId == null ? null : decodeRoomCode(roomId),
+        roomCodeEncoder: roomCodeEncoder ?? encodeRoomCode,
+      ),
+      pipe,
     );
   }
 
@@ -106,9 +89,26 @@ final class SwampConnection extends NetworkerServer {
   }
 
   @override
-  FutureOr<void> init() {
-    _channel = WebSocketChannel.connect(address);
-    _channel?.stream.listen(_onMessage);
+  Future<void> init() async {
+    if (isOpen) {
+      return;
+    }
+    final channel =
+        _channel = WebSocketChannel.connect(address, protocols: ['swamp-0']);
+    channel.stream.listen(
+      (event) {
+        onMessage(event);
+      },
+      onDone: () {
+        _onClosed.add(null);
+      },
+      onError: (error) {
+        _onClosed.addError(error);
+      },
+      cancelOnError: true,
+    );
+    await channel.ready;
+    _onOpen.add(null);
   }
 
   @override
@@ -120,61 +120,77 @@ final class SwampConnection extends NetworkerServer {
   @override
   Stream<void> get onOpen => _onOpen.stream;
 
-  void _onMessage(event) {
-    final message = Uint8List.fromList(
-      event is String ? event.codeUnits : event,
-    );
-    final eventCode = message[0] << 8 | message[1];
-    final data = message.sublist(2);
-    switch (eventCode) {
-      case 0x00:
-        final playerId = data[0] << 8 | data[1];
-        final message = data.sublist(2);
-        onMessage(message, playerId);
-      case 0x01:
-        final flags = data[0];
-        final maxPlayers = data[1] << 8 | data[2];
-        final currentId = data[3] << 8 | data[4];
-        final roomId = data.sublist(5);
-        _roomInfo = RoomInfo(
-          flags: flags,
-          maxPlayers: maxPlayers,
-          currentId: currentId,
-          roomId: roomId,
-        );
-      case 0x02:
-        _roomInfo = null;
-      case 0x03:
-        final playerId = data[0] << 8 | data[1];
-        addClientConnection(
-          SwampClientConnectionInfo(this, playerId),
-          playerId,
-        );
-      case 0x04:
-        final playerId = data[0] << 8 | data[1];
-        removeConnection(playerId);
-      case 0x05:
-        clearConnections();
-        final playerIds = <Channel>{};
-        for (var i = 0; i < data.length; i += 2) {
-          playerIds.add(data[i] << 8 | data[i + 1]);
-        }
-        for (final id in playerIds) {
-          if (clientConnections.contains(id)) continue;
-          addClientConnection(SwampClientConnectionInfo(this, id), id);
-        }
-        for (final id in clientConnections) {
-          if (playerIds.contains(id)) continue;
-          removeConnection(id);
-        }
-    }
+  void _initFunctions() {
+    registerNamedFunction(SwampEvent.message).read.listen((packet) {
+      final data = packet.data;
+      final playerId = data[0] << 8 | data[1];
+      final message = data.sublist(2);
+      onMessage(message, playerId);
+    });
+    registerNamedFunction(SwampEvent.roomInfo).read.listen((packet) {
+      final data = packet.data;
+      final flags = data[0];
+      final maxPlayers = data[1] << 8 | data[2];
+      final currentId = data[3] << 8 | data[4];
+      final roomId = data.sublist(5);
+      _roomInfo = RoomInfo(
+        flags: flags,
+        maxPlayers: maxPlayers,
+        currentId: currentId,
+        roomId: roomId,
+      );
+    });
+    registerNamedFunction(SwampEvent.welcome).read.listen((packet) {
+      final data = packet.data;
+      final flags = data[0];
+      final maxPlayers = data[1] << 8 | data[2];
+      final currentId = data[3] << 8 | data[4];
+      final roomId = data.sublist(5);
+      _roomInfo = RoomInfo(
+        flags: flags,
+        maxPlayers: maxPlayers,
+        currentId: currentId,
+        roomId: roomId,
+      );
+    });
+    registerNamedFunction(SwampEvent.kicked).read.listen((packet) {
+      close();
+    });
+    registerNamedFunction(SwampEvent.roomJoinFailed).read.listen((packet) {
+      close();
+    });
+    registerNamedFunction(SwampEvent.roomCreationFailed).read.listen((packet) {
+      close();
+    });
+    registerNamedFunction(SwampEvent.playerJoined).read.listen((packet) {
+      final data = packet.data;
+      final playerId = data[0] << 8 | data[1];
+      addClientConnection(SwampClientConnectionInfo(this, playerId), playerId);
+    });
+    registerNamedFunction(SwampEvent.playerLeft).read.listen((packet) {
+      final data = packet.data;
+      final playerId = data[0] << 8 | data[1];
+      removeConnection(playerId);
+    });
+    registerNamedFunction(SwampEvent.playerList).read.listen((packet) {
+      final data = packet.data;
+      final playerIds = <Channel>{};
+      for (var i = 0; i < data.length; i += 2) {
+        playerIds.add(data[i] << 8 | data[i + 1]);
+      }
+      for (final id in playerIds) {
+        if (clientConnections.contains(id)) continue;
+        addClientConnection(SwampClientConnectionInfo(this, id), id);
+      }
+      for (final id in clientConnections) {
+        if (playerIds.contains(id)) continue;
+        removeConnection(id);
+      }
+    });
   }
 
   @override
-  Future<void> sendMessage(
-    Uint8List data, [
-    Channel channel = kAnyChannel,
-  ]) async {
+  Future<void> sendPacket(Uint8List data, Channel channel) async {
     if (channel == kAnyChannel || channel < 0) {
       _channel?.sink.add([0, ...data]);
       await _channel?.sink.done;
