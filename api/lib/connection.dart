@@ -3,7 +3,9 @@ library;
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:cryptography/cryptography.dart';
 import 'package:networker/networker.dart';
+import 'package:networker_crypto/networker_crypto.dart';
 import 'package:swamp_api/models.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -57,28 +59,30 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       roomCodeEncoder: roomCodeDecoder ?? encodeRoomCode,
     );
   }
-  static (SwampConnection, NetworkerPipe) buildSecure(
-    Uri address, {
-    String Function(Uint8List)? roomCodeEncoder,
-    Uint8List Function(String) parseRoomCode = decodeRoomCode,
+  static Future<(SwampConnection, NetworkerPipe)> buildSecure(
+    Uri address,
+    Cipher cipher, {
+    String Function(Uint8List) roomCodeEncoder = encodeRoomCode,
+    Uint8List Function(String) roomCodeDecoder = decodeRoomCode,
     String split = ':',
-  }) {
+  }) async {
     var roomId = address.hasFragment ? address.fragment : null;
-    var pipe = SimpleNetworkerPipe();
+    SecretKey key;
     if (roomId != null) {
       var splitted = roomId.split(split);
       roomId = splitted[0];
-      // var key = splitted.elementAtOrNull(1);
-      // TODO: Add end-to-end encryption
+      key = await cipher.newSecretKeyFromBytes(roomCodeDecoder(splitted[1]));
+    } else {
+      key = await cipher.newSecretKey();
     }
-    return (
-      SwampConnection(
-        server: address.replace(fragment: ''),
-        roomId: roomId == null ? null : decodeRoomCode(roomId),
-        roomCodeEncoder: roomCodeEncoder ?? encodeRoomCode,
-      ),
-      pipe,
+    final e2ee = E2EENetworkerPipe(cipher: cipher, secretKey: key);
+    final connection = SwampConnection(
+      server: address.replace(fragment: ''),
+      roomId: roomId == null ? null : roomCodeDecoder(roomId),
+      roomCodeEncoder: roomCodeEncoder,
     );
+    connection.registerNamedFunction(SwampEvent.message).connect(e2ee);
+    return (connection, e2ee);
   }
 
   @override
@@ -122,12 +126,6 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   Stream<void> get onOpen => _onOpen.stream;
 
   void _initFunctions() {
-    registerNamedFunction(SwampEvent.message).read.listen((packet) {
-      final data = packet.data;
-      final playerId = data[0] << 8 | data[1];
-      final message = data.sublist(2);
-      onMessage(message, playerId);
-    });
     registerNamedFunction(SwampEvent.roomInfo).read.listen((packet) {
       final data = packet.data;
       final flags = data[0];

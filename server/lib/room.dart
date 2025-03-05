@@ -8,10 +8,15 @@ import 'package:swamp_api/models.dart';
 final class SwampRoom {
   final Uint8List roomId;
   final RoomFlags roomFlags;
+  final Uint8List? application;
   // Key is the player, value is the channel.
   final Map<Channel, Channel> _playerChannels = {};
 
-  SwampRoom._(this.roomId, {this.roomFlags = const RoomFlags(0)});
+  SwampRoom._(
+    this.roomId, {
+    this.roomFlags = const RoomFlags(0),
+    this.application,
+  });
 
   @override
   String toString() => encodeRoomCode(roomId);
@@ -32,6 +37,9 @@ final class SwampRoom {
   Channel? getChannel(Channel player) => _playerChannels[player];
 
   Set<Channel> get players => _playerChannels.keys.toSet();
+  Set<Channel> get channels => _playerChannels.values.toSet();
+
+  Channel get owner => getPlayer(kAuthorityChannel) ?? kAnyChannel;
 
   Channel? getPlayer(Channel channel) {
     for (final entry in _playerChannels.entries) {
@@ -55,6 +63,7 @@ Uint8List generateRandomRoomId() {
 final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
   final Set<SwampRoom> _rooms = {};
   final Map<Channel, SwampRoom> _joined = {};
+  final Map<Channel, Uint8List> _application = {};
 
   SwampRoom addRoom(
     Channel owner, [
@@ -63,7 +72,11 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
   ]) {
     leaveRoom(owner);
     roomId ??= generateRandomRoomId();
-    final room = SwampRoom._(roomId, roomFlags: roomFlags);
+    final room = SwampRoom._(
+      roomId,
+      roomFlags: roomFlags,
+      application: _application[owner],
+    );
     _rooms.add(room);
     _joined[owner] = room;
     room._playerChannels[owner] = kAuthorityChannel;
@@ -116,15 +129,22 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     );
   }
 
-  void leaveRoom(Channel channel) {
+  bool leaveRoom(
+    Channel channel, {
+    String? reason = '',
+    Channel? currentId,
+    Uint8List? roomId,
+  }) {
+    if (_joined[channel]?.roomId != roomId) return false;
     final room = _joined.remove(channel);
-    if (room == null) return;
+    if (room == null) return false;
+    if (currentId != null && room.owner != currentId) return false;
     final player = room.getPlayer(channel);
-    if (player == null) return;
+    if (player == null) return false;
     room._playerChannels.remove(player);
     if (room.isEmpty) {
       _rooms.remove(room);
-      return;
+      return true;
     }
     if (player == kAuthorityChannel) {
       for (final player in room.players) {
@@ -132,6 +152,7 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
       }
       room.players.clear();
     }
+    return true;
   }
 
   void sendMessageToRoom(
@@ -151,6 +172,15 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     }
     for (final receiver in receivers) {
       sendMessage(data, receiver);
+    }
+  }
+
+  void setApplication(Channel channel, Uint8List? data) {
+    if (data?.isEmpty ?? false) data = null;
+    if (data == null) {
+      _application.remove(channel);
+    } else {
+      _application[channel] = data;
     }
   }
 }

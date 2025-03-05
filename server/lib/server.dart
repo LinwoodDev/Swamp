@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:networker/networker.dart';
 import 'package:networker_socket/server.dart';
@@ -62,10 +63,43 @@ class SwampServer extends NetworkerSocketServer {
   }
 
   void _initFunctions() {
-    _rpcPipe.registerNamedFunction(SwampCommand.createRoom).read.listen((
-      event,
-    ) {
-      _roomManager.addRoom(event.channel);
-    });
+    _rpcPipe
+      ..registerNamedFunction(SwampCommand.createRoom).read.listen((event) {
+        _roomManager.addRoom(event.channel);
+      })
+      ..registerNamedFunction(SwampCommand.joinRoom).read.listen((event) {
+        _roomManager.addRoom(event.channel, event.data);
+      })
+      ..registerNamedFunction(SwampCommand.leaveRoom).read.listen((event) {
+        _roomManager.leaveRoom(event.channel);
+      })
+      ..registerNamedFunction(SwampCommand.kickPlayer).read.listen((event) {
+        final player = event.data
+            .sublist(0, 2)
+            .buffer
+            .asByteData()
+            .getUint16(0);
+        final reason = String.fromCharCodes(event.data.sublist(2));
+        _roomManager.leaveRoom(player, reason: reason);
+      })
+      ..registerNamedFunction(SwampCommand.playerList).read.listen((event) {
+        final players =
+            _roomManager.getChannelRoom(event.channel)?.channels ?? <Channel>[];
+        final builder = BytesBuilder();
+        builder.addByte(players.length >> 8);
+        builder.addByte(players.length & 0xFF);
+        for (final player in players) {
+          builder.addByte(player >> 8);
+          builder.addByte(player & 0xFF);
+        }
+        _rpcPipe.sendNamedFunction(
+          SwampEvent.playerList,
+          builder.toBytes(),
+          channel: event.channel,
+        );
+      })
+      ..registerNamedFunction(SwampCommand.setApplication).read.listen((event) {
+        _roomManager.setApplication(event.channel, event.data);
+      });
   }
 }

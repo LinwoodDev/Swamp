@@ -125,9 +125,9 @@ If you create a room but it fails.
 
 *Dark Room Event (toggleable), but returns empty error if not permitted*
 
-|      |                     | ... |
-| ---- | ------------------- | --- |
-| 0x08 | Player ID (2 Bytes) | ... |
+|      |                  |                     | ... |
+| ---- | ---------------- | ------------------- | --- |
+| 0x08 | Length (2 Bytes) | Player ID (2 Bytes) | ... |
 
 ### Available Commands
 
