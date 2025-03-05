@@ -3,7 +3,6 @@ library;
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:cryptography/cryptography.dart';
 import 'package:networker/networker.dart';
 import 'package:networker_crypto/networker_crypto.dart';
 import 'package:swamp_api/models.dart';

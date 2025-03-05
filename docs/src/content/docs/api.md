@@ -1,3 +1,7 @@
+---
+title: API Reference
+---
+
 # API
 
 The current api version is `v0` and paths are prefixed with `/api/v0`.
@@ -193,7 +197,7 @@ to set the application or:
 
 to remove the application restriction.
 
-## Room Flags{#room-flags}
+## Room Flags
 
 | Flag | Description                                                                                       |
 | ---- | ------------------------------------------------------------------------------------------------- |
