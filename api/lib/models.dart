@@ -76,6 +76,36 @@ final class RoomInfo {
   }
 }
 
-enum KickReason { roomClosed, kicked, banned }
+enum KickReason {
+  roomClosed,
+  kicked,
+  banned,
+  unknown;
 
-enum JoinFailedReason { roomNotFound, roomFull, banned }
+  int get value => this == unknown ? 0xFF : index;
+
+  static KickReason fromValue(int value) =>
+      KickReason.values.elementAtOrNull(value) ?? unknown;
+}
+
+enum JoinFailedReason {
+  roomNotFound,
+  roomFull,
+  banned,
+  unknown;
+
+  int get value => this == unknown ? 0xFF : index;
+
+  static JoinFailedReason fromValue(int value) =>
+      JoinFailedReason.values.elementAtOrNull(value) ?? unknown;
+}
+
+enum CreationFailedReason {
+  limitReached,
+  unknown;
+
+  int get value => this == unknown ? 0xFF : index;
+
+  static CreationFailedReason fromValue(int value) =>
+      CreationFailedReason.values.elementAtOrNull(value) ?? unknown;
+}

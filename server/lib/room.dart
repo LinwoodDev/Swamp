@@ -121,7 +121,7 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
   ]) {
     final builder = BytesBuilder();
     builder.addByte(0x03);
-    builder.addByte(reason.index);
+    builder.addByte(reason.value);
     builder.add(Uint8List.fromList(message.codeUnits));
     sendMessage(
       RpcNetworkerPacket.named(
@@ -134,7 +134,7 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
 
   void _sendJoinFailed(Channel channel, JoinFailedReason reason) {
     final builder = BytesBuilder();
-    builder.addByte(reason.index);
+    builder.addByte(reason.value);
     sendMessage(
       RpcNetworkerPacket.named(
         name: SwampEvent.roomJoinFailed,

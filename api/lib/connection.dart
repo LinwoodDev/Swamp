@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:networker/networker.dart';
 import 'package:networker_crypto/networker_crypto.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:swamp_api/models.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -18,12 +19,19 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
         NamedRpcNetworkerPipe<SwampEvent, SwampCommand> {
   final StreamController<void> _onOpen = StreamController<void>.broadcast(),
       _onClosed = StreamController<void>.broadcast();
+  final StreamController<KickReason> _onKicked =
+      StreamController<KickReason>.broadcast();
+  final StreamController<JoinFailedReason> _onJoinFailed =
+      StreamController<JoinFailedReason>.broadcast();
+  final StreamController<CreationFailedReason> _onCreationFailed =
+      StreamController<CreationFailedReason>.broadcast();
+  final BehaviorSubject<RoomInfo> _onRoomInfo = BehaviorSubject();
   final String Function(Uint8List) roomCodeEncoder;
   final Uri server;
   final Uint8List? roomId;
+  final E2EENetworkerPipe? e2eePipe;
 
   WebSocketChannel? _channel;
-  RoomInfo? _roomInfo;
 
   @override
   bool get isServer => false;
@@ -34,15 +42,30 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
 
   @override
   Uri get address {
-    final id = _roomInfo?.roomId ?? roomId;
+    final id = roomInfo?.roomId ?? roomId;
     return server.replace(fragment: id == null ? null : roomCodeEncoder(id));
   }
+
+  Stream<KickReason> get onKicked => _onKicked.stream;
+
+  Stream<JoinFailedReason> get onJoinFailed => _onJoinFailed.stream;
+
+  Stream<RoomInfo?> get onRoomInfo => _onRoomInfo.stream;
+
+  RoomInfo? get roomInfo => _onRoomInfo.valueOrNull;
+
+  NetworkerPipe<Uint8List, Uint8List> get messagePipe =>
+      e2eePipe ?? registerNamedFunction(SwampEvent.message);
 
   SwampConnection({
     required this.server,
     this.roomId,
     this.roomCodeEncoder = encodeRoomCode,
+    this.e2eePipe,
   }) {
+    if (e2eePipe != null) {
+      registerNamedFunction(SwampEvent.message).connect(e2eePipe!);
+    }
     _initFunctions();
   }
 
@@ -58,7 +81,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       roomCodeEncoder: roomCodeDecoder ?? encodeRoomCode,
     );
   }
-  static Future<(SwampConnection, NetworkerPipe)> buildSecure(
+  static Future<SwampConnection> buildSecure(
     Uri address,
     Cipher cipher, {
     String Function(Uint8List) roomCodeEncoder = encodeRoomCode,
@@ -79,9 +102,9 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       server: address.replace(fragment: ''),
       roomId: roomId == null ? null : roomCodeDecoder(roomId),
       roomCodeEncoder: roomCodeEncoder,
+      e2eePipe: e2ee,
     );
-    connection.registerNamedFunction(SwampEvent.message).connect(e2ee);
-    return (connection, e2ee);
+    return connection;
   }
 
   @override
@@ -89,7 +112,6 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     super.close();
     _channel?.sink.close();
     _channel = null;
-    _roomInfo = null;
   }
 
   @override
@@ -131,11 +153,13 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       final maxPlayers = data[1] << 8 | data[2];
       final currentId = data[3] << 8 | data[4];
       final roomId = data.sublist(5);
-      _roomInfo = RoomInfo(
-        flags: flags,
-        maxPlayers: maxPlayers,
-        currentId: currentId,
-        roomId: roomId,
+      _onRoomInfo.add(
+        RoomInfo(
+          flags: flags,
+          maxPlayers: maxPlayers,
+          currentId: currentId,
+          roomId: roomId,
+        ),
       );
     });
     registerNamedFunction(SwampEvent.welcome).read.listen((packet) {
@@ -144,20 +168,25 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       final maxPlayers = data[1] << 8 | data[2];
       final currentId = data[3] << 8 | data[4];
       final roomId = data.sublist(5);
-      _roomInfo = RoomInfo(
-        flags: flags,
-        maxPlayers: maxPlayers,
-        currentId: currentId,
-        roomId: roomId,
+      _onRoomInfo.add(
+        RoomInfo(
+          flags: flags,
+          maxPlayers: maxPlayers,
+          currentId: currentId,
+          roomId: roomId,
+        ),
       );
     });
     registerNamedFunction(SwampEvent.kicked).read.listen((packet) {
+      _onKicked.add(KickReason.fromValue(packet.data[0]));
       close();
     });
     registerNamedFunction(SwampEvent.roomJoinFailed).read.listen((packet) {
+      _onJoinFailed.add(JoinFailedReason.fromValue(packet.data[0]));
       close();
     });
     registerNamedFunction(SwampEvent.roomCreationFailed).read.listen((packet) {
+      _onCreationFailed.add(CreationFailedReason.fromValue(packet.data[0]));
       close();
     });
     registerNamedFunction(SwampEvent.playerJoined).read.listen((packet) {
