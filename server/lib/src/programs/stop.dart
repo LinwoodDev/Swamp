@@ -10,6 +10,7 @@ class StopProgram extends ConsoleProgram {
 
   @override
   void run(String label, List<String> args) {
+    print("Stopping server...");
     server.close();
   }
 }

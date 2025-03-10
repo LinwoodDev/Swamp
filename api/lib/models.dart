@@ -31,7 +31,10 @@ enum SwampCommand with RpcFunctionName {
   createRoom,
   kickPlayer,
   playerList,
-  setApplication,
+  setApplication;
+
+  @override
+  RpcNetworkerMode get mode => RpcNetworkerMode.any;
 }
 
 extension type const RoomFlags(int value) {

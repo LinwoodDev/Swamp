@@ -146,14 +146,13 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
 
   void sendRoomInfo(Channel channel) {
     final room = getChannelRoom(channel);
-    if (room == null) {
+    final player = room?.getChannel(channel);
+    if (room == null || player == null) {
       sendMessage(
         RpcNetworkerPacket.named(name: SwampEvent.welcome, data: Uint8List(0)),
       );
       return;
     }
-    final player = room.getPlayer(channel);
-    if (player == null) return;
     final info = RoomInfo(
       currentId: player,
       flags: room.roomFlags.value,
@@ -225,4 +224,6 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
       _application[channel] = data;
     }
   }
+
+  Iterable<SwampRoom> get rooms => _rooms;
 }

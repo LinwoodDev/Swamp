@@ -48,7 +48,11 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     SwampEvent.roomJoinFailed,
   ).read.map((packet) => JoinFailedReason.fromValue(packet.data[0]));
 
-  Stream<RoomInfo?> get onRoomInfo => _onRoomInfo.stream;
+  Stream<CreationFailedReason> get onCreationFailed => registerNamedFunction(
+    SwampEvent.roomCreationFailed,
+  ).read.map((packet) => CreationFailedReason.fromValue(packet.data[0]));
+
+  Stream<RoomInfo> get onRoomInfo => _onRoomInfo.stream;
 
   RoomInfo? get roomInfo => _onRoomInfo.valueOrNull;
 
@@ -121,6 +125,9 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
         _channel = WebSocketChannel.connect(address, protocols: ['swamp-0']);
     channel.stream.listen(
       (event) {
+        if (event is String) {
+          event = Uint8List.fromList(event.codeUnits);
+        }
         onMessage(event);
       },
       onDone: () {
@@ -133,6 +140,31 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     );
     await channel.ready;
     _onOpen.add(null);
+    return _sendRequest();
+  }
+
+  Future<void> _sendRequest() {
+    if (roomId == null) {
+      return sendMessage(
+        RpcNetworkerPacket.named(
+          name: SwampCommand.createRoom,
+          data: Uint8List(0),
+        ),
+      );
+    } else {
+      return sendMessage(
+        RpcNetworkerPacket.named(name: SwampCommand.joinRoom, data: roomId!),
+      );
+    }
+  }
+
+  @override
+  Future<void> onMessage(
+    Uint8List data, [
+    Channel channel = kAnyChannel,
+  ]) async {
+    await super.onMessage(data, channel);
+    runFunction(decode(data), channel: kAuthorityChannel);
   }
 
   @override
@@ -146,6 +178,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
 
   void _initFunctions() {
     registerNamedFunction(SwampEvent.roomInfo).read.listen((packet) {
+      print('room info');
       final data = packet.data;
       final flags = data[0];
       final maxPlayers = data[1] << 8 | data[2];
@@ -211,11 +244,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
 
   @override
   Future<void> sendPacket(Uint8List data, Channel channel) async {
-    if (channel == kAnyChannel || channel < 0) {
-      _channel?.sink.add([0, ...data]);
-      await _channel?.sink.done;
-    } else {
-      getConnectionInfo(channel)?.sendMessage(data);
-    }
+    _channel?.sink.add(data);
+    return _channel?.sink.done;
   }
 }
