@@ -49,6 +49,16 @@ final class SwampRoom {
     }
     return null;
   }
+
+  Channel _findAvailableChannel() {
+    final keys = _playerChannels.values.toList();
+    for (var i = 2; i < 2 ^ 16; i++) {
+      if (!keys.contains(i)) {
+        return i;
+      }
+    }
+    return kAnyChannel;
+  }
 }
 
 const kRoomIdLength = 8 * 4;
@@ -65,13 +75,26 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
   final Map<Channel, SwampRoom> _joined = {};
   final Map<Channel, Uint8List> _application = {};
 
-  SwampRoom addRoom(
-    Channel owner, [
-    Uint8List? roomId,
-    RoomFlags roomFlags = const RoomFlags(0),
-  ]) {
+  SwampRoom? joinRoom(Uint8List roomId, Channel player) {
+    final room = getRoom(roomId);
+    if (room == null) {
+      _sendJoinFailed(player, JoinFailedReason.roomNotFound);
+      return null;
+    }
+    final id = room._findAvailableChannel();
+    if (id == kAnyChannel) {
+      _sendJoinFailed(player, JoinFailedReason.roomFull);
+      return null;
+    }
+    _joined[player] = room;
+    room._playerChannels[player] = id;
+    sendRoomInfo(player);
+    return room;
+  }
+
+  SwampRoom addRoom(Channel owner, [RoomFlags roomFlags = const RoomFlags(0)]) {
     leaveRoom(owner);
-    roomId ??= generateRandomRoomId();
+    final roomId = generateRandomRoomId();
     final room = SwampRoom._(
       roomId,
       roomFlags: roomFlags,
@@ -80,6 +103,7 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     _rooms.add(room);
     _joined[owner] = room;
     room._playerChannels[owner] = kAuthorityChannel;
+    sendRoomInfo(owner);
     return room;
   }
 
@@ -102,6 +126,18 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     sendMessage(
       RpcNetworkerPacket.named(
         name: SwampEvent.kicked,
+        data: builder.toBytes(),
+      ),
+      channel,
+    );
+  }
+
+  void _sendJoinFailed(Channel channel, JoinFailedReason reason) {
+    final builder = BytesBuilder();
+    builder.addByte(reason.index);
+    sendMessage(
+      RpcNetworkerPacket.named(
+        name: SwampEvent.roomJoinFailed,
         data: builder.toBytes(),
       ),
       channel,
@@ -155,13 +191,11 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     return true;
   }
 
-  void sendMessageToRoom(
-    Uint8List roomId,
-    Channel receiver,
-    RpcNetworkerPacket data,
-  ) {
-    final room = getRoom(roomId);
+  void sendMessageToRoom(Channel sender, Channel receiver, Uint8List data) {
+    final room = getChannelRoom(sender);
     if (room == null) return;
+    final senderChannel = room.getChannel(sender);
+    if (senderChannel == null) return;
     final receivers = <Channel>[];
     if (receiver == kAnyChannel) {
       receivers.addAll(room._playerChannels.keys);
@@ -170,8 +204,16 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
       if (channel == null) return;
       receivers.add(channel);
     }
+    final builder = BytesBuilder();
+    builder.addByte(senderChannel >> 8);
+    builder.addByte(senderChannel & 0xFF);
+    builder.add(data);
+    final bytes = builder.toBytes();
     for (final receiver in receivers) {
-      sendMessage(data, receiver);
+      sendMessage(
+        RpcNetworkerPacket.named(name: SwampEvent.message, data: bytes),
+        receiver,
+      );
     }
   }
 

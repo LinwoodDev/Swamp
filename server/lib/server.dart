@@ -16,7 +16,7 @@ final class SwampRoom {
 class SwampServer extends NetworkerSocketServer {
   final SwampRoomManager _roomManager = SwampRoomManager();
   final NamedRpcClientNetworkerPipe<SwampCommand, SwampEvent> _rpcPipe =
-      NamedRpcClientNetworkerPipe();
+      NamedRpcClientNetworkerPipe(config: RpcConfig(channelField: false));
   final Consoler _consoler = Consoler(
     defaultProgramConfig: DefaultProgramConfiguration(
       description: 'Swamp Server',
@@ -33,11 +33,21 @@ class SwampServer extends NetworkerSocketServer {
 
   void _initFunctions() {
     _rpcPipe
+      ..registerNamedFunction(SwampCommand.message).read.listen((event) {
+        final sender = event.channel;
+        final receiver = event.data
+            .sublist(0, 2)
+            .buffer
+            .asByteData()
+            .getUint16(0);
+        final message = event.data.sublist(2);
+        _roomManager.sendMessageToRoom(sender, receiver, message);
+      })
       ..registerNamedFunction(SwampCommand.createRoom).read.listen((event) {
         _roomManager.addRoom(event.channel);
       })
       ..registerNamedFunction(SwampCommand.joinRoom).read.listen((event) {
-        _roomManager.addRoom(event.channel, event.data);
+        _roomManager.joinRoom(event.data, event.channel);
       })
       ..registerNamedFunction(SwampCommand.leaveRoom).read.listen((event) {
         _roomManager.leaveRoom(event.channel);

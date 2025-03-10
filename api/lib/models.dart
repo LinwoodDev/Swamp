@@ -77,3 +77,5 @@ final class RoomInfo {
 }
 
 enum KickReason { roomClosed, kicked, banned }
+
+enum JoinFailedReason { roomNotFound, roomFull, banned }
