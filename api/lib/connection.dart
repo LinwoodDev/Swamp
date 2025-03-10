@@ -19,12 +19,6 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
         NamedRpcNetworkerPipe<SwampEvent, SwampCommand> {
   final StreamController<void> _onOpen = StreamController<void>.broadcast(),
       _onClosed = StreamController<void>.broadcast();
-  final StreamController<KickReason> _onKicked =
-      StreamController<KickReason>.broadcast();
-  final StreamController<JoinFailedReason> _onJoinFailed =
-      StreamController<JoinFailedReason>.broadcast();
-  final StreamController<CreationFailedReason> _onCreationFailed =
-      StreamController<CreationFailedReason>.broadcast();
   final BehaviorSubject<RoomInfo> _onRoomInfo = BehaviorSubject();
   final String Function(Uint8List) roomCodeEncoder;
   final Uri server;
@@ -46,9 +40,13 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     return server.replace(fragment: id == null ? null : roomCodeEncoder(id));
   }
 
-  Stream<KickReason> get onKicked => _onKicked.stream;
+  Stream<KickReason> get onKicked => registerNamedFunction(
+    SwampEvent.kicked,
+  ).read.map((packet) => KickReason.fromValue(packet.data[0]));
 
-  Stream<JoinFailedReason> get onJoinFailed => _onJoinFailed.stream;
+  Stream<JoinFailedReason> get onJoinFailed => registerNamedFunction(
+    SwampEvent.roomJoinFailed,
+  ).read.map((packet) => JoinFailedReason.fromValue(packet.data[0]));
 
   Stream<RoomInfo?> get onRoomInfo => _onRoomInfo.stream;
 
@@ -177,18 +175,13 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
         ),
       );
     });
-    registerNamedFunction(SwampEvent.kicked).read.listen((packet) {
-      _onKicked.add(KickReason.fromValue(packet.data[0]));
-      close();
-    });
-    registerNamedFunction(SwampEvent.roomJoinFailed).read.listen((packet) {
-      _onJoinFailed.add(JoinFailedReason.fromValue(packet.data[0]));
-      close();
-    });
-    registerNamedFunction(SwampEvent.roomCreationFailed).read.listen((packet) {
-      _onCreationFailed.add(CreationFailedReason.fromValue(packet.data[0]));
-      close();
-    });
+    registerNamedFunction(SwampEvent.kicked).read.listen((packet) => close());
+    registerNamedFunction(
+      SwampEvent.roomJoinFailed,
+    ).read.listen((packet) => close());
+    registerNamedFunction(
+      SwampEvent.roomCreationFailed,
+    ).read.listen((packet) => close());
     registerNamedFunction(SwampEvent.playerJoined).read.listen((packet) {
       final data = packet.data;
       final playerId = data[0] << 8 | data[1];

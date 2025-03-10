@@ -23,13 +23,22 @@ class SwampServer extends NetworkerSocketServer {
     ),
   );
 
-  SwampServer(super.serverAddress, super.port) {
+  SwampServer(
+    super.serverAddress,
+    super.port, {
+    bool withConsole = true,
+    LogLevel? minLogLevel,
+  }) {
     connect(_rpcPipe..connect(_roomManager));
 
     _initFunctions();
     _consoler.registerPrograms({'stop': StopProgram(this)});
-    _consoler.run();
+    _consoler.minLogLevel = minLogLevel ?? _consoler.minLogLevel;
+    if (withConsole) _consoler.run();
   }
+
+  void log(Object? message, [LogLevel? level]) =>
+      _consoler.print(message, level: level);
 
   void _initFunctions() {
     _rpcPipe
@@ -45,12 +54,15 @@ class SwampServer extends NetworkerSocketServer {
       })
       ..registerNamedFunction(SwampCommand.createRoom).read.listen((event) {
         _roomManager.addRoom(event.channel);
+        log('Room created: ${_roomManager.getChannelRoom(event.channel)}');
       })
       ..registerNamedFunction(SwampCommand.joinRoom).read.listen((event) {
         _roomManager.joinRoom(event.data, event.channel);
+        log('Client ${event.channel} joined room ${event.data}');
       })
       ..registerNamedFunction(SwampCommand.leaveRoom).read.listen((event) {
         _roomManager.leaveRoom(event.channel);
+        log('Client ${event.channel} left room');
       })
       ..registerNamedFunction(SwampCommand.kickPlayer).read.listen((event) {
         final player = event.data
@@ -60,6 +72,7 @@ class SwampServer extends NetworkerSocketServer {
             .getUint16(0);
         final reason = String.fromCharCodes(event.data.sublist(2));
         _roomManager.leaveRoom(player, reason: reason);
+        log('Client ${event.channel} kicked from room');
       })
       ..registerNamedFunction(SwampCommand.playerList).read.listen((event) {
         final players =
@@ -76,9 +89,11 @@ class SwampServer extends NetworkerSocketServer {
           builder.toBytes(),
           channel: event.channel,
         );
+        log('Player list sent to ${event.channel}', LogLevel.verbose);
       })
       ..registerNamedFunction(SwampCommand.setApplication).read.listen((event) {
         _roomManager.setApplication(event.channel, event.data);
+        log('Application set for ${event.channel}', LogLevel.verbose);
       });
   }
 }
