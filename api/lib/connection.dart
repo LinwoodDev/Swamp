@@ -243,8 +243,5 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   }
 
   @override
-  Future<void> sendPacket(Uint8List data, Channel channel) async {
-    _channel?.sink.add(data);
-    return _channel?.sink.done;
-  }
+  void sendPacket(Uint8List data, Channel channel) => _channel?.sink.add(data);
 }

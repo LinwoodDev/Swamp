@@ -29,7 +29,7 @@ final class SwampRoom {
   @override
   bool operator ==(Object other) {
     if (other is SwampRoom) {
-      return roomId == other.roomId;
+      return encodeRoomCode(roomId) == encodeRoomCode(other.roomId);
     }
     return false;
   }

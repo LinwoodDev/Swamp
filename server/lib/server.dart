@@ -66,8 +66,15 @@ class SwampServer extends NetworkerSocketServer {
         );
       })
       ..registerNamedFunction(SwampCommand.joinRoom).read.listen((event) {
-        _roomManager.joinRoom(event.data, event.channel);
-        log('Client ${event.channel} joined room ${event.data}', LogLevel.info);
+        final room = _roomManager.joinRoom(event.data, event.channel);
+        if (room == null) {
+          log('Client ${event.channel} failed to join room', LogLevel.warning);
+          return;
+        }
+        log(
+          'Client ${event.channel} joined room ${encodeRoomCode(event.data)}',
+          LogLevel.info,
+        );
       })
       ..registerNamedFunction(SwampCommand.leaveRoom).read.listen((event) {
         _roomManager.leaveRoom(event.channel);
