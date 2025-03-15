@@ -49,10 +49,8 @@ If you have a new language to add, please contact me.
 
 ## Code
 
-This project is written in [Dart](https://dart.dev/) and was built with [Flutter](https://flutter.dev/).
+This project is written in [Dart](https://dart.dev/).
 The server source code can be found in the `server` folder.
-
-On windows, please install visual studio build tools (or visual studio) and all flutter dependencies. Additionally install the atl library.
 
 To get started, run:
 

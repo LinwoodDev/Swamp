@@ -66,8 +66,8 @@ Future<void> main(List<String> args) async {
     await updateChangelog(version, changelog);
   }
 
-  // Run flutter pub get in server directory
-  await Process.run('flutter', ['pub', 'get'],
+  // Run dart pub get in server directory
+  await Process.run('dart', ['pub', 'get'],
       workingDirectory: 'server', runInShell: true);
 
   print('Successfully updated!');
