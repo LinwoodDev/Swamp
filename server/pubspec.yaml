@@ -32,6 +32,7 @@ dependencies:
       ref: ca62a7ca874e32f12861f45848bf392e172429d2
 
 dev_dependencies:
+  build_runner: ^2.4.15
   http: ^1.1.0
   lints: ^5.0.0
   test: ^1.24.0
