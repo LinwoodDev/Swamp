@@ -1,0 +1,49 @@
+name: Dart
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        projects: [api, server, tools]
+    defaults:
+      run:
+        working-directory: ${{ matrix.projects }}
+    steps:
+      - name: ⬆️ Checkout
+        uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2.18.0
+        with:
+          flutter-version-file: app/pubspec.yaml
+      - uses: actions/checkout@v4
+      - name: Print Dart SDK version
+        run: |
+          dart --version
+          flutter --version
+      - name: Install dependencies
+        run: |
+          flutter pub get
+      - name: Run flutter gen-l10n
+        if: matrix.projects == 'app'
+        run: |
+          flutter gen-l10n
+          dart format lib/src/generated
+      # Uncomment this step to verify the use of 'dart format' on each commit.
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib
+      # Consider passing '--fatal-infos' for slightly stricter analysis.
+      - name: Analyze project source
+        run: |
+          flutter analyze --fatal-infos
+      - name: Run build_runner
+        if: matrix.projects != 'tools'
+        run: dart run build_runner build --delete-conflicting-outputs
+      - name: Test for git changes
+        run: git diff --exit-code
+      # Your project will need to have tests in test/ and a dependency on
+      # package:test for this step to succeed. Note that Flutter projects will
+      # want to change this to 'flutter test'.
+      # - name: Run tests
+      #   run: flutter test
