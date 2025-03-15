@@ -24,6 +24,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   final Uri server;
   final Uint8List? roomId;
   final E2EENetworkerPipe? e2eePipe;
+  final RawNetworkerPipe messagePipe;
 
   WebSocketChannel? _channel;
 
@@ -56,18 +57,18 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
 
   RoomInfo? get roomInfo => _onRoomInfo.valueOrNull;
 
-  NetworkerPipe<Uint8List, Uint8List> get messagePipe =>
-      e2eePipe ?? registerNamedFunction(SwampEvent.message);
-
   SwampConnection({
     required this.server,
     this.roomId,
     this.roomCodeEncoder = encodeRoomCode,
     this.e2eePipe,
-  }) {
+  }) : messagePipe = InternalChannelPipe(bytes: 2, channel: kAnyChannel) {
     if (e2eePipe != null) {
       registerNamedFunction(SwampEvent.message).connect(e2eePipe!);
     }
+    (e2eePipe ?? registerNamedFunction(SwampEvent.message)).connect(
+      messagePipe,
+    );
     _initFunctions();
   }
 

@@ -10,11 +10,7 @@ environment:
 dependencies:
   swamp_api:
     path: ../api
-  networker:
-    git:
-      url: https://github.com/LinwoodDev/dart_pkgs.git
-      path: packages/networker/networker
-      ref: 08928a4dc5ef638809b18c84f4f9bd64108fe18d
+  networker: any
   networker_crypto:
     git:
       url: https://github.com/LinwoodDev/dart_pkgs.git
@@ -36,3 +32,9 @@ dev_dependencies:
   http: ^1.1.0
   lints: ^5.0.0
   test: ^1.24.0
+dependency_overrides:
+  networker:
+    git:
+      url: https://github.com/LinwoodDev/dart_pkgs.git
+      path: packages/networker/networker
+      ref: 213c6382f196ee93c4c43ca911cdb26a38317e39
