@@ -11,6 +11,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 part 'info.dart';
 
+const kDefaultSwampSplit = ':';
+
 class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     with
         NetworkerBase<RpcNetworkerPacket>,
@@ -21,10 +23,12 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       _onClosed = StreamController<void>.broadcast();
   final BehaviorSubject<RoomInfo> _onRoomInfo = BehaviorSubject();
   final String Function(Uint8List) roomCodeEncoder;
+  final Uint8List Function(String) roomCodeDecoder;
   final Uri server;
   final Uint8List? roomId;
   final E2EENetworkerPipe? e2eePipe;
   final RawNetworkerPipe messagePipe;
+  final String split;
 
   WebSocketChannel? _channel;
 
@@ -39,6 +43,17 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   Uri get address {
     final id = roomInfo?.roomId ?? roomId;
     return server.replace(fragment: id == null ? null : roomCodeEncoder(id));
+  }
+
+  Future<Uri> getSecureAddress() async {
+    if (e2eePipe == null) return address;
+    final id = roomInfo?.roomId ?? roomId;
+    if (id == null) return server;
+    final key = await e2eePipe!.secretKey.extractBytes();
+    return server.replace(
+      fragment:
+          '${encodeRoomCode(id)}$split${encodeRoomCode(Uint8List.fromList(key))}',
+    );
   }
 
   Stream<KickReason> get onKicked => registerNamedFunction(
@@ -61,7 +76,9 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     required this.server,
     this.roomId,
     this.roomCodeEncoder = encodeRoomCode,
+    this.roomCodeDecoder = decodeRoomCode,
     this.e2eePipe,
+    this.split = kDefaultSwampSplit,
   }) : messagePipe = InternalChannelPipe(bytes: 2, channel: kAnyChannel) {
     if (e2eePipe != null) {
       registerNamedFunction(SwampEvent.message).connect(e2eePipe!);
@@ -74,14 +91,19 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
 
   factory SwampConnection.build(
     Uri address, {
-    String Function(Uint8List)? roomCodeDecoder,
-    Uint8List Function(String) parseRoomCode = decodeRoomCode,
+    String split = kDefaultSwampSplit,
+    String Function(Uint8List)? roomCodeEncoder,
+    Uint8List Function(String)? roomCodeDecoder,
   }) {
-    final roomId = address.hasFragment ? parseRoomCode(address.fragment) : null;
+    roomCodeDecoder ??= decodeRoomCode;
+    final roomId =
+        address.hasFragment ? roomCodeDecoder(address.fragment) : null;
     return SwampConnection(
       server: address.replace(fragment: ''),
       roomId: roomId,
-      roomCodeEncoder: roomCodeDecoder ?? encodeRoomCode,
+      roomCodeEncoder: roomCodeEncoder ?? encodeRoomCode,
+      roomCodeDecoder: roomCodeDecoder,
+      split: split,
     );
   }
   static Future<SwampConnection> buildSecure(
@@ -89,7 +111,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     Cipher cipher, {
     String Function(Uint8List) roomCodeEncoder = encodeRoomCode,
     Uint8List Function(String) roomCodeDecoder = decodeRoomCode,
-    String split = ':',
+    String split = kDefaultSwampSplit,
   }) async {
     var roomId = address.hasFragment ? address.fragment : null;
     SecretKey key;
@@ -105,6 +127,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       server: address.replace(fragment: ''),
       roomId: roomId == null ? null : roomCodeDecoder(roomId),
       roomCodeEncoder: roomCodeEncoder,
+      roomCodeDecoder: roomCodeDecoder,
       e2eePipe: e2ee,
     );
     return connection;
