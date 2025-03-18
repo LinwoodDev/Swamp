@@ -1,36 +1,36 @@
 ---
-title: Welcome to Starlight
-description: Get started building your docs site with Starlight.
+title: Linwood Swamp
+description: Universal Secure Web-Socket Application Messaging Proxy for Linwood Apps
 template: splash
 hero:
-  tagline: Congrats on setting up a new Starlight project!
+  tagline: Universal Secure Web-Socket Application Messaging Proxy for Linwood Apps
   image:
-    file: ../../assets/houston.webp
+    file: /public/img/logo.svg
   actions:
-    - text: Example Guide
-      link: /guides/example/
-      icon: right-arrow
-    - text: Read the Starlight docs
-      link: https://starlight.astro.build
-      icon: external
-      variant: minimal
+    - text: Download
+      link: /downloads/
+      icon: download
+      variant: primary
+    - text: Getting started
+      link: /docs/v1/intro/
+      icon: document
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { LinkCard, Card, CardGrid } from '@astrojs/starlight/components';
 
-## Next steps
+## Principles
 
 <CardGrid stagger>
-	<Card title="Update content" icon="pencil">
-		Edit `src/content/docs/index.mdx` to see this page change.
+	<Card title="Cross platform" icon="laptop">
+		You can start the server on windows, linux or mac.
 	</Card>
-	<Card title="Add new content" icon="add-document">
-		Add Markdown or MDX files to `src/content/docs` to create new pages.
+	<Card title="Universal" icon="puzzle">
+		The server can be used for any app that implements the swamp protocol. The protocol is simple and easy to implement.
 	</Card>
-	<Card title="Configure your site" icon="setting">
-		Edit your `sidebar` and other config in `astro.config.mjs`.
+	<Card title="Customizable" icon="pencil">
+		The server has a settings file that can be used to customize the server to your needs. Additionally you can use the server as a library in your own project.
 	</Card>
-	<Card title="Read the docs" icon="open-book">
-		Learn more in [the Starlight Docs](https://starlight.astro.build/).
+	<Card title="Open API" icon="open-book">
+		All api endpoints are documented and can be used to create your own client or server.
 	</Card>
 </CardGrid>

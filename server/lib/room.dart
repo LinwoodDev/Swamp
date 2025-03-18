@@ -81,6 +81,13 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
       _sendJoinFailed(player, JoinFailedReason.roomNotFound);
       return null;
     }
+    final application = _application[player];
+    if (application != null &&
+        room.application != null &&
+        encodeRoomCode(room.application!) != encodeRoomCode(application)) {
+      _sendJoinFailed(player, JoinFailedReason.roomFull);
+      return null;
+    }
     final id = room._findAvailableChannel();
     if (id == kAnyChannel) {
       _sendJoinFailed(player, JoinFailedReason.roomFull);
@@ -183,7 +190,7 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     }
     if (player == kAuthorityChannel) {
       for (final player in room.players) {
-        _sendKickMessage(player, KickReason.roomClosed);
+        _sendKickMessage(player, KickReason.hostLeft);
       }
       room.players.clear();
     }

@@ -9,12 +9,16 @@ environment:
 
 # Add regular dependencies here.
 dependencies:
-  networker: any
+  networker:
+    git:
+      url: https://github.com/LinwoodDev/dart_pkgs.git
+      path: packages/networker/networker
+      ref: 213c6382f196ee93c4c43ca911cdb26a38317e39
   networker_crypto:
     git:
       url: https://github.com/LinwoodDev/dart_pkgs.git
       path: packages/networker/networker_crypto
-      ref: 459deccbfacedc115f28ae0095c5b531c70d7cc7
+      ref: e901983295b103f2fe27738e8f2cbf35941d99ea
   rxdart: ^0.28.0
   web_socket_channel: ^3.0.2
   # path: ^1.8.0
@@ -23,9 +27,3 @@ dev_dependencies:
   build_runner: ^2.4.15
   lints: ^5.0.0
   test: ^1.24.0
-dependency_overrides:
-  networker:
-    git:
-      url: https://github.com/LinwoodDev/dart_pkgs.git
-      path: packages/networker/networker
-      ref: 213c6382f196ee93c4c43ca911cdb26a38317e39

@@ -83,6 +83,7 @@ enum KickReason {
   roomClosed,
   kicked,
   banned,
+  hostLeft,
   unknown;
 
   int get value => this == unknown ? 0xFF : index;
@@ -95,6 +96,7 @@ enum JoinFailedReason {
   roomNotFound,
   roomFull,
   banned,
+  applicationMismatch,
   unknown;
 
   int get value => this == unknown ? 0xFF : index;

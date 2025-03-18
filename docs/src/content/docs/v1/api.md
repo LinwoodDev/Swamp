@@ -65,6 +65,7 @@ If you are kicked from a room.
 | 0x00   | Room closed      |
 | 0x01   | Kicked from room |
 | 0x02   | Banned from room |
+| 0x03   | Host left        |
 | 0xFF   | Unknown error    |
 
 #### Room join failed
@@ -77,12 +78,13 @@ If you want to join a room but it fails.
 
 ##### Reasons
 
-| Reason | Description         |
-| ------ | ------------------- |
-| 0x00   | Room does not exist |
-| 0x01   | Room is full        |
-| 0x02   | Banned from room    |
-| 0xFF   | Unknown error       |
+| Reason | Description          |
+| ------ | -------------------- |
+| 0x00   | Room does not exist  |
+| 0x01   | Room is full         |
+| 0x02   | Banned from room     |
+| 0x03   | Application mismatch |
+| 0xFF   | Unknown error        |
 
 #### Room creation failed
 
