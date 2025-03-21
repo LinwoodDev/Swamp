@@ -1,15 +1,14 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:networker/networker.dart';
 
 String encodeRoomCode(Uint8List data) {
-  return data.map((e) => e.toRadixString(16)).join();
+  return base64Encode(data);
 }
 
 Uint8List decodeRoomCode(String code) {
-  return Uint8List.fromList(
-    code.split('').map((e) => int.parse(e, radix: 16)).toList(),
-  );
+  return base64Decode(code);
 }
 
 enum SwampEvent with RpcFunctionName {
