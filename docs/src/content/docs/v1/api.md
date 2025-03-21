@@ -201,8 +201,8 @@ to remove the application restriction.
 
 ## Room Flags
 
-| Flag | Description                                                                                       |
-| ---- | ------------------------------------------------------------------------------------------------- |
-| 0x01 | Dark Room (Restrict some events to only be seen by the host)                                      |
-| 0x02 | Toggle Player Visibility (On dark rooms, players can see each other, on normal rooms, they can't) |
-| 0x04 | Close Room on Host Leave (If the host leaves, the room is closed)                                 |
+| Flag | Description                                                                                          |
+| ---- | ---------------------------------------------------------------------------------------------------- |
+| 0x01 | Dark Room (Restrict some events to only be seen by the host)                                         |
+| 0x02 | Toggle Player Visibility (On dark rooms, players can see each other, on normal rooms, they can't)    |
+| 0x04 | Switch Host on Host Leave (If the host leaves, the host will be changed instead of closing the room) |

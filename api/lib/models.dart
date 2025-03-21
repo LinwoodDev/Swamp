@@ -38,12 +38,33 @@ enum SwampCommand with RpcFunctionName {
 }
 
 extension type const RoomFlags._(int value) {
-  const RoomFlags([int value = 0]) : this._(value);
   static const darkRoomFlag = 0x01;
   static const playerVisibilityFlag = 0x02;
+  static const switchHostOnLeaveFlag = 0x04;
+  const RoomFlags([int value = 0]) : this._(value);
+  RoomFlags.build({
+    bool darkRoom = false,
+    bool playerVisibility = false,
+    bool switchHostOnLeave = false,
+  }) : this._(
+         (darkRoom ? darkRoomFlag : 0) |
+             (playerVisibility ? playerVisibilityFlag : 0) |
+             (switchHostOnLeave ? switchHostOnLeaveFlag : 0),
+       );
 
   bool get isDarkRoom => value & darkRoomFlag != 0;
   bool get isPlayerVisibility => value & playerVisibilityFlag != 0;
+  bool get isSwitchHostOnLeave => value & switchHostOnLeaveFlag != 0;
+
+  RoomFlags withValues({
+    bool? darkRoom,
+    bool? playerVisibility,
+    bool? switchHostOnLeave,
+  }) => RoomFlags.build(
+    darkRoom: darkRoom ?? isDarkRoom,
+    playerVisibility: playerVisibility ?? isPlayerVisibility,
+    switchHostOnLeave: switchHostOnLeave ?? isSwitchHostOnLeave,
+  );
 }
 
 final class RoomInfo {
