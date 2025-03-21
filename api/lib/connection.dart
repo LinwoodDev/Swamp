@@ -29,6 +29,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   final E2EENetworkerPipe? e2eePipe;
   final RawNetworkerPipe messagePipe;
   final String split;
+  final RoomFlags flags;
 
   WebSocketChannel? _channel;
 
@@ -79,6 +80,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     this.roomCodeDecoder = decodeRoomCode,
     this.e2eePipe,
     this.split = kDefaultSwampSplit,
+    this.flags = const RoomFlags(),
   }) : messagePipe = InternalChannelPipe(bytes: 2, channel: kAnyChannel) {
     if (e2eePipe != null) {
       registerNamedFunction(SwampEvent.message).connect(e2eePipe!);
@@ -94,6 +96,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     String split = kDefaultSwampSplit,
     String Function(Uint8List)? roomCodeEncoder,
     Uint8List Function(String)? roomCodeDecoder,
+    RoomFlags flags = const RoomFlags(),
   }) {
     roomCodeDecoder ??= decodeRoomCode;
     final roomId =
@@ -104,6 +107,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       roomCodeEncoder: roomCodeEncoder ?? encodeRoomCode,
       roomCodeDecoder: roomCodeDecoder,
       split: split,
+      flags: flags,
     );
   }
   static Future<SwampConnection> buildSecure(
@@ -112,6 +116,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     String Function(Uint8List) roomCodeEncoder = encodeRoomCode,
     Uint8List Function(String) roomCodeDecoder = decodeRoomCode,
     String split = kDefaultSwampSplit,
+    RoomFlags flags = const RoomFlags(),
   }) async {
     var roomId = address.hasFragment ? address.fragment : null;
     SecretKey key;
@@ -129,6 +134,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       roomCodeEncoder: roomCodeEncoder,
       roomCodeDecoder: roomCodeDecoder,
       e2eePipe: e2ee,
+      flags: flags,
     );
     return connection;
   }
@@ -169,11 +175,9 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
 
   Future<void> _sendRequest() {
     if (roomId == null) {
+      final data = Uint8List.fromList([flags.value]);
       return sendMessage(
-        RpcNetworkerPacket.named(
-          name: SwampCommand.createRoom,
-          data: Uint8List(0),
-        ),
+        RpcNetworkerPacket.named(name: SwampCommand.createRoom, data: data),
       );
     } else {
       return sendMessage(

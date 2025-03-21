@@ -14,7 +14,7 @@ final class SwampRoom {
 
   SwampRoom._(
     this.roomId, {
-    this.roomFlags = const RoomFlags(0),
+    this.roomFlags = const RoomFlags(),
     this.application,
   });
 
@@ -99,7 +99,7 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     return room;
   }
 
-  SwampRoom addRoom(Channel owner, [RoomFlags roomFlags = const RoomFlags(0)]) {
+  SwampRoom addRoom(Channel owner, [RoomFlags roomFlags = const RoomFlags()]) {
     leaveRoom(owner);
     final roomId = generateRandomRoomId();
     final room = SwampRoom._(

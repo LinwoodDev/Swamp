@@ -37,7 +37,8 @@ enum SwampCommand with RpcFunctionName {
   RpcNetworkerMode get mode => RpcNetworkerMode.any;
 }
 
-extension type const RoomFlags(int value) {
+extension type const RoomFlags._(int value) {
+  const RoomFlags([int value = 0]) : this._(value);
   static const darkRoomFlag = 0x01;
   static const playerVisibilityFlag = 0x02;
 
