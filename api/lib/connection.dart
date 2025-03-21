@@ -18,6 +18,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
         NetworkerBase<RpcNetworkerPacket>,
         RpcNetworkerPipeMixin,
         NetworkerServerMixin<SwampClientConnectionInfo, RpcNetworkerPacket>,
+        NetworkerClientMixin<RpcNetworkerPacket>,
         NamedRpcNetworkerPipe<SwampEvent, SwampCommand> {
   final StreamController<void> _onOpen = StreamController<void>.broadcast(),
       _onClosed = StreamController<void>.broadcast();
@@ -34,7 +35,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   WebSocketChannel? _channel;
 
   @override
-  bool get isServer => false;
+  bool get isServer => roomInfo?.currentId == kAuthorityChannel;
   @override
   Channel? get receiverChannel => null;
   @override
