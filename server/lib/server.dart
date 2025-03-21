@@ -45,6 +45,7 @@ class SwampServer extends NetworkerSocketServer {
       log('Client connected: ${event.$1}', LogLevel.info);
     });
     clientDisconnect.listen((event) {
+      _roomManager.leaveRoom(event.$1);
       log('Client disconnected: ${event.$1}', LogLevel.info);
     });
     _rpcPipe
@@ -86,8 +87,7 @@ class SwampServer extends NetworkerSocketServer {
             .buffer
             .asByteData()
             .getUint16(0);
-        final reason = String.fromCharCodes(event.data.sublist(2));
-        _roomManager.leaveRoom(player, reason: reason);
+        _roomManager.leaveRoom(player);
         log('Client ${event.channel} kicked from room', LogLevel.info);
       })
       ..registerNamedFunction(SwampCommand.playerList).read.listen((event) {

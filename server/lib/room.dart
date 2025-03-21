@@ -171,24 +171,19 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     );
   }
 
-  bool leaveRoom(
-    Channel channel, {
-    String? reason = '',
-    Channel? currentId,
-    Uint8List? roomId,
-  }) {
-    if (_joined[channel]?.roomId != roomId) return false;
+  bool leaveRoom(Channel channel, {Channel? currentId, Uint8List? roomId}) {
+    if (roomId != null && _joined[channel]?.roomId != roomId) return false;
     final room = _joined.remove(channel);
     if (room == null) return false;
     if (currentId != null && room.owner != currentId) return false;
-    final player = room.getPlayer(channel);
-    if (player == null) return false;
-    room._playerChannels.remove(player);
+    final roomChannel = room.getChannel(channel);
+    if (roomChannel == null) return false;
+    room._playerChannels.remove(channel);
     if (room.isEmpty) {
       _rooms.remove(room);
       return true;
     }
-    if (player == kAuthorityChannel) {
+    if (roomChannel == kAuthorityChannel) {
       for (final player in room.players) {
         _sendKickMessage(player, KickReason.hostLeft);
       }
