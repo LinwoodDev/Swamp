@@ -29,6 +29,12 @@ Future<void> main(List<String> args) async {
     timer?.cancel();
     timer = null;
   });
+  connection.clientConnect.listen((event) {
+    print('Client was connected: ${event.$1}');
+  });
+  connection.clientDisconnect.listen((event) {
+    print('Client was disconnected: ${event.$1}');
+  });
   await connection.init();
   print('Connected to ${connection.server}');
 }
