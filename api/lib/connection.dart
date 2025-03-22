@@ -83,13 +83,17 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     this.e2eePipe,
     this.split = kDefaultSwampSplit,
     this.flags = const RoomFlags(),
-  }) : messagePipe = InternalChannelPipe(bytes: 2, channel: kAnyChannel) {
+  }) : messagePipe = SimpleNetworkerPipe() {
+    final channelPipe = InternalChannelPipe(bytes: 2, channel: kAnyChannel);
     if (e2eePipe != null) {
-      registerNamedFunction(SwampEvent.message).connect(e2eePipe!);
+      registerNamedFunction(
+        SwampEvent.message,
+      ).connect(channelPipe..connect(e2eePipe!..connect(messagePipe)));
+    } else {
+      registerNamedFunction(
+        SwampEvent.message,
+      ).connect(channelPipe..connect(messagePipe));
     }
-    (e2eePipe ?? registerNamedFunction(SwampEvent.message)).connect(
-      messagePipe,
-    );
     _initFunctions();
   }
 
