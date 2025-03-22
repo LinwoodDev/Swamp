@@ -141,6 +141,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       roomCodeDecoder: roomCodeDecoder,
       e2eePipe: e2ee,
       flags: flags,
+      split: split,
     );
     return connection;
   }
@@ -212,7 +213,6 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
 
   void _initFunctions() {
     registerNamedFunction(SwampEvent.roomInfo).read.listen((packet) {
-      print('room info');
       final data = packet.data;
       final flags = data[0];
       final maxPlayers = data[1] << 8 | data[2];
