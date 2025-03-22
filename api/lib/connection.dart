@@ -3,8 +3,9 @@ library;
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:cryptography_plus/cryptography_plus.dart';
 import 'package:networker/networker.dart';
-import 'package:networker_crypto/networker_crypto.dart';
+import 'package:networker_crypto/e2ee.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:swamp_api/models.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
