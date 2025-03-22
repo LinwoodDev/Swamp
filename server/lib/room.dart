@@ -212,14 +212,15 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     SwampRoom room,
     RpcNetworkerPacket packet, [
     Channel receiver = kAnyChannel,
+    Channel sender = kAnyChannel,
   ]) {
-    final receivers = <Channel>[];
+    List<Channel> receivers;
     if (receiver == kAnyChannel) {
-      receivers.addAll(room._playerChannels.keys);
+      receivers = room._playerChannels.keys.where((c) => c != sender).toList();
     } else {
       final channel = room.getPlayer(receiver);
       if (channel == null) return;
-      receivers.add(channel);
+      receivers = [channel];
     }
     for (final receiver in receivers) {
       sendMessage(packet, receiver);
@@ -240,7 +241,7 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
       name: SwampEvent.message,
       data: bytes,
     );
-    _sendPacketToRoom(room, packet, receiver);
+    _sendPacketToRoom(room, packet, receiver, sender);
   }
 
   void setApplication(Channel channel, Uint8List? data) {

@@ -13,6 +13,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 part 'info.dart';
 
 const kDefaultSwampSplit = ':';
+const kSwampSchemePrefix = 'swamp+';
 
 class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     with
@@ -21,6 +22,10 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
         NetworkerServerMixin<SwampClientConnectionInfo, RpcNetworkerPacket>,
         NetworkerClientMixin<RpcNetworkerPacket>,
         NamedRpcNetworkerPipe<SwampEvent, SwampCommand> {
+  static final List<String> supportedSchemes = List.unmodifiable(const [
+    '${kSwampSchemePrefix}ws',
+    '${kSwampSchemePrefix}wss',
+  ]);
   final StreamController<void> _onOpen = StreamController<void>.broadcast(),
       _onClosed = StreamController<void>.broadcast();
   final BehaviorSubject<RoomInfo> _onRoomInfo = BehaviorSubject();
@@ -56,6 +61,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     return server.replace(
       fragment:
           '${encodeRoomCode(id)}$split${encodeRoomCode(Uint8List.fromList(key))}',
+      scheme: '$kSwampSchemePrefix${server.scheme}',
     );
   }
 
@@ -157,6 +163,13 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   Future<void> init() async {
     if (isOpen) {
       return;
+    }
+    var address = this.address;
+    final scheme = address.scheme;
+    if (scheme.startsWith(kSwampSchemePrefix)) {
+      address = address.replace(
+        scheme: scheme.substring(kSwampSchemePrefix.length),
+      );
     }
     final channel =
         _channel = WebSocketChannel.connect(address, protocols: ['swamp-0']);
