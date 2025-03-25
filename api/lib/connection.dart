@@ -171,6 +171,9 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
         scheme: scheme.substring(kSwampSchemePrefix.length),
       );
     }
+    if (!address.hasScheme) {
+      address = address.replace(scheme: 'wss');
+    }
     final channel =
         _channel = WebSocketChannel.connect(address, protocols: ['swamp-0']);
     channel.stream.listen(

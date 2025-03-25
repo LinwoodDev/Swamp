@@ -24,6 +24,7 @@ class SwampServer extends NetworkerSocketServer {
     super.port, {
     bool withConsole = true,
     LogLevel? minLogLevel,
+    super.securityContext,
   }) {
     connect(_rpcPipe..connect(_roomManager));
 

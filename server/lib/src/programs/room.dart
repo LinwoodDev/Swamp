@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:consoler/consoler.dart';
 import 'package:swamp/room.dart';
 import 'package:swamp_api/models.dart';
@@ -19,7 +21,13 @@ class RoomProgram extends ConsoleProgram {
       print("Usage: room ${getUsage()}");
       return;
     }
-    final roomId = decodeRoomCode(args[0]);
+    Uint8List roomId;
+    try {
+      roomId = decodeRoomCode(args[0]);
+    } on FormatException {
+      print("Invalid room code");
+      return;
+    }
     final room = roomManager.getRoom(roomId);
     if (room == null) {
       print("Room not found");

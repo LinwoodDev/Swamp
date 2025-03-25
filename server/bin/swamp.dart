@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:consoler/consoler.dart';
 import 'package:swamp/server.dart';
 
 final welcomeMessage = """
@@ -21,8 +22,25 @@ Future<void> main(List<String> args) async {
 
   // For running in containers, we respect the PORT environment variable.
   final port = int.parse(Platform.environment['PORT'] ?? '8080');
-  final server = SwampServer(ip, port);
+  SecurityContext? securityContext;
+  try {
+    final privateKey = await File('certs/server.key').readAsBytes();
+    final certificate = await File('certs/server.crt').readAsBytes();
+    securityContext =
+        SecurityContext()
+          ..usePrivateKeyBytes(privateKey)
+          ..useCertificateChainBytes(certificate);
+  } on PathNotFoundException catch (_) {}
+  final server = SwampServer(ip, port, securityContext: securityContext);
   server.log(welcomeMessage);
+  if (securityContext != null) {
+    server.log('Certificates found, using secure connection', LogLevel.info);
+  } else {
+    server.log(
+      'No certificates found, using insecure connection',
+      LogLevel.warning,
+    );
+  }
   await server.init();
   server.log('Server listening on port ${server.port}');
 }
