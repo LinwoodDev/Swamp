@@ -1,4 +1,4 @@
-name: Flutter build
+name: Dart build
 
 on:
   push:
@@ -12,7 +12,6 @@ on:
   pull_request:
 jobs:
   build-server:
-    concurrency: ci-${{ github.ref }}
     defaults:
       run:
         working-directory: server
@@ -63,3 +62,120 @@ jobs:
         with:
           name: server-build-${{ matrix.os.label }}
           path: server/server-build
+  deploy:
+    runs-on: ubuntu-24.04
+    if: github.event_name != 'pull_request'
+    outputs:
+      version: ${{ steps.setup.outputs.SETONIX_VERSION }}
+      build_number: ${{ steps.setup.outputs.SETONIX_BUILD_NUMBER }}
+    needs:
+      - build-server
+    steps:
+      - name: ⬆️ Checkout
+        uses: actions/checkout@v4
+        env:
+          CI_PAT: ${{ secrets.CI_PAT }}
+        with:
+          token: ${{ env.CI_PAT }}
+      - name: Setup git
+        id: setup
+        run: |
+          SETONIX_VERSION_REGEX="version:\s(.+)\+(.+)"
+          [[ $(grep -E "${SETONIX_VERSION_REGEX}" app/pubspec.yaml) =~ ${SETONIX_VERSION_REGEX} ]]
+          SETONIX_VERSION="${BASH_REMATCH[1]}"
+          echo "SETONIX_VERSION=${SETONIX_VERSION}" >> $GITHUB_ENV
+          echo "SETONIX_VERSION=${SETONIX_VERSION}" >> $GITHUB_OUTPUT
+          SETONIX_BUILD_NUMBER="${BASH_REMATCH[2]}"
+          echo "SETONIX_BUILD_NUMBER=${SETONIX_BUILD_NUMBER}" >> $GITHUB_ENV
+          echo "SETONIX_BUILD_NUMBER=${SETONIX_BUILD_NUMBER}" >> $GITHUB_OUTPUT
+          git config --global user.email "ci@linwood.dev"
+          git config --global user.name "Linwood CI"
+      - uses: actions/download-artifact@v4
+        with:
+          name: server-build-linux-x86_64
+          path: server-build-linux-x86_64/
+      - uses: actions/download-artifact@v4
+        with:
+          name: server-build-linux-arm64
+          path: server-build-linux-arm64/
+      - uses: actions/download-artifact@v4
+        with:
+          name: server-build-windows-x86_64
+          path: server-build-windows-x86_64/
+      - uses: actions/download-artifact@v4
+        with:
+          name: server-build-macos
+          path: server-build-macos/
+      - name: 📦 Zip artifacts
+        run: |
+          zip -r linwood-swamp-server-windows-x86_64.zip server-build-windows-x86_64/*
+          tar -C server-build-linux-x86_64 -czf linwood-setonix-server-linux-x86_64.tar.gz .
+          tar -C server-build-linux-arm64 -czf linwood-setonix-server-linux-arm64.tar.gz .
+          zip -r linwood-setonix-server-macos.zip server-build-macos/*
+      - name: Configure git
+        if: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' }}
+        run: |
+          git --version
+          git config --global user.email "actions@github.com"
+          git config --global user.name "Actions"
+          git pull --tags
+      - name: Add checksums
+        run: |
+          output_file="checksums.txt"
+
+          # Empty the output file if it exists
+          > "$output_file"
+
+          # Find and loop through all files starting with "linwood-setonix" in the current directory
+          for file in linwood-setonix*; do
+            # Check if the file exists (in case no matches were found)
+            if [ -f "$file" ]; then
+              # Append sha256sum to the output file in the format "hash  filename"
+              sha256sum "$file" >> "$output_file"
+            fi
+          done
+
+          echo "SHA256 hashes for files starting with 'linwood-setonix' saved to $output_file"
+      - name: 🚀 Deploy stable
+        if: ${{ github.ref == 'refs/tags/stable' || (github.event_name == 'release' && !github.event.release.prerelease) }}
+        uses: softprops/action-gh-release@v2
+        continue-on-error: true
+        with:
+          prerelease: true
+          tag_name: stable
+          files: |
+            linwood-setonix-server-linux-x86_64.tar.gz
+            linwood-setonix-server-linux-arm64.tar.gz
+            linwood-setonix-server-windows-x86_64.zip
+            linwood-setonix-server-macos.zip
+            checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 🚀 Deploy nightly
+        if: ${{ github.ref == 'refs/tags/nightly' }}
+        uses: softprops/action-gh-release@v2
+        continue-on-error: true
+        with:
+          prerelease: true
+          tag_name: nightly
+          files: |
+            linwood-setonix-server-linux-x86_64.tar.gz
+            linwood-setonix-server-linux-arm64.tar.gz
+            linwood-setonix-server-windows-x86_64.zip
+            linwood-setonix-server-macos.zip
+            checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        continue-on-error: true
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: |
+            linwood-setonix-server-linux-x86_64.tar.gz
+            linwood-setonix-server-linux-arm64.tar.gz
+            linwood-setonix-server-windows-x86_64.zip
+            linwood-setonix-server-macos.zip
+            checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
