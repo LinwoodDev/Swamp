@@ -28,6 +28,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   ]);
   final StreamController<void> _onOpen = StreamController<void>.broadcast(),
       _onClosed = StreamController<void>.broadcast();
+  final StreamController<void> _onWelcome = StreamController<void>.broadcast();
   final BehaviorSubject<RoomInfo> _onRoomInfo = BehaviorSubject();
   final String Function(Uint8List) roomCodeEncoder;
   final Uint8List Function(String) roomCodeDecoder;
@@ -80,6 +81,8 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   Stream<RoomInfo> get onRoomInfo => _onRoomInfo.stream;
 
   RoomInfo? get roomInfo => _onRoomInfo.valueOrNull;
+
+  Stream<void> get onWelcome => _onWelcome.stream;
 
   SwampConnection({
     required this.server,
@@ -244,19 +247,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       );
     });
     registerNamedFunction(SwampEvent.welcome).read.listen((packet) {
-      final data = packet.data;
-      final flags = data[0];
-      final maxPlayers = data[1] << 8 | data[2];
-      final currentId = data[3] << 8 | data[4];
-      final roomId = data.sublist(5);
-      _onRoomInfo.add(
-        RoomInfo(
-          flags: flags,
-          maxPlayers: maxPlayers,
-          currentId: currentId,
-          roomId: roomId,
-        ),
-      );
+      _onWelcome.add(null);
     });
     registerNamedFunction(SwampEvent.kicked).read.listen((packet) => close());
     registerNamedFunction(

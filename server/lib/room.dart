@@ -62,9 +62,9 @@ final class SwampRoom {
 }
 
 const kRoomIdLength = 8 * 4;
+final random = Random.secure();
 
 Uint8List generateRandomRoomId() {
-  final random = Random.secure();
   return Uint8List.fromList(
     List.generate(kRoomIdLength, (_) => random.nextInt(256)),
   );
@@ -108,7 +108,10 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
 
   SwampRoom addRoom(Channel owner, [RoomFlags roomFlags = const RoomFlags()]) {
     leaveRoom(owner);
-    final roomId = generateRandomRoomId();
+    var roomId = generateRandomRoomId();
+    while (_rooms.contains(SwampRoom._(roomId))) {
+      roomId = generateRandomRoomId();
+    }
     final room = SwampRoom._(
       roomId,
       roomFlags: roomFlags,

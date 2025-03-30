@@ -44,10 +44,11 @@ class SwampServer extends NetworkerSocketServer {
   void _initFunctions() {
     clientConnect.listen((event) {
       log('Client connected: ${event.$1}', LogLevel.info);
+      _roomManager.sendRoomInfo(event.$1);
     });
     clientDisconnect.listen((event) {
-      _roomManager.leaveRoom(event.$1);
       log('Client disconnected: ${event.$1}', LogLevel.info);
+      _roomManager.leaveRoom(event.$1);
     });
     _rpcPipe
       ..registerNamedFunction(SwampCommand.message).read.listen((event) {

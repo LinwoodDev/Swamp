@@ -13,8 +13,8 @@
 </div>
 
 <p align="center">
-    <a href="http://linwood.dev"><b>Website</b></a> •
-    <a href="http://linwood.dev"><b>Download</b></a> •
+    <a href="http://swamp.linwood.dev"><b>Website</b></a> •
+    <a href="http://swamp.linwood.dev/downloads"><b>Download</b></a> •
     <a href="https://linwood.dev/matrix"><b>Matrix</b></a> •
     <a href="https://go.linwood.dev/discord"><b>Discord</b></a> •
     <a href="https://floss.social/@linwood"><b>Mastodon</b></a> •
