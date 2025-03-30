@@ -67,7 +67,6 @@ jobs:
     if: github.event_name != 'pull_request'
     outputs:
       version: ${{ steps.setup.outputs.SWAMP_VERSION }}
-      build_number: ${{ steps.setup.outputs.SWAMP_BUILD_NUMBER }}
     needs:
       - build-server
     steps:
@@ -80,14 +79,9 @@ jobs:
       - name: Setup git
         id: setup
         run: |
-          SWAMP_VERSION_REGEX="version:\s(.+)\+(.+)"
-          [[ $(grep -E "${SWAMP_VERSION_REGEX}" server/pubspec.yaml) =~ ${SWAMP_VERSION_REGEX} ]]
-          SWAMP_VERSION="${BASH_REMATCH[1]}"
+          SWAMP_VERSION=$(yq e '.version' server/pubspec.yaml)
           echo "SWAMP_VERSION=${SWAMP_VERSION}" >> $GITHUB_ENV
           echo "SWAMP_VERSION=${SWAMP_VERSION}" >> $GITHUB_OUTPUT
-          SWAMP_BUILD_NUMBER="${BASH_REMATCH[2]}"
-          echo "SWAMP_BUILD_NUMBER=${SWAMP_BUILD_NUMBER}" >> $GITHUB_ENV
-          echo "SWAMP_BUILD_NUMBER=${SWAMP_BUILD_NUMBER}" >> $GITHUB_OUTPUT
           git config --global user.email "ci@linwood.dev"
           git config --global user.name "Linwood CI"
       - uses: actions/download-artifact@v4

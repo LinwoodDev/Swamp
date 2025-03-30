@@ -47,5 +47,5 @@ To get started, visit [the contributing guide](CONTRIBUTING.md).
 
 ## License
 
-The code is open source and licensed under the [AGPL-3.0](./LICENSE) license.
+The code is open source and licensed under the [Apache-2.0](./LICENSE) license.
 All content in `docs/` are licensed under the [CC-BY-SA-4.0](./BRANDING_LICENSE) license.
