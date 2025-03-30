@@ -20,7 +20,7 @@ export default defineConfig({
         "./src/styles/custom.css",
       ],
       logo: {
-        src: "./public/favicon.svg",
+        src: "./public/logo.svg",
       },
       favicon: "./favicon.ico",
       social: {
@@ -40,10 +40,11 @@ export default defineConfig({
           label: "Guides",
           items: [
             // Each item here is one entry in the navigation menu.
-            { label: "Example Guide", slug: "docs/v1/example" },
+            { label: "Introduction", slug: "docs/v1/intro" },
             { label: "API", slug: "docs/v1/api" },
           ],
         },
+        { label: "Downloads", slug: "downloads" },
       ],
     }),
     AstroPWA({

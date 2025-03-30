@@ -26,7 +26,10 @@
 
 **This project is still in development and not ready for production use. Please join the matrix or discord server for updates!**
 
-Swamp is a universal end-to-end encrypted server software that implements the client-side protocol of the Swamp network protocol. It is designed to be a secure, fast, and reliable.
+Swamp is a server protocol to allow simple messaging between clients with a simple websocket interface.
+It is designed to be flexible with a universal API to allow any app to use it.
+Read more in the [documentation](https://swamp.linwood.dev/docs/v1/intro).
+
 
 ## Official Apps
 
