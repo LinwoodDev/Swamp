@@ -66,8 +66,8 @@ jobs:
     runs-on: ubuntu-24.04
     if: github.event_name != 'pull_request'
     outputs:
-      version: ${{ steps.setup.outputs.SETONIX_VERSION }}
-      build_number: ${{ steps.setup.outputs.SETONIX_BUILD_NUMBER }}
+      version: ${{ steps.setup.outputs.SWAMP_VERSION }}
+      build_number: ${{ steps.setup.outputs.SWAMP_BUILD_NUMBER }}
     needs:
       - build-server
     steps:
@@ -80,14 +80,14 @@ jobs:
       - name: Setup git
         id: setup
         run: |
-          SETONIX_VERSION_REGEX="version:\s(.+)\+(.+)"
-          [[ $(grep -E "${SETONIX_VERSION_REGEX}" app/pubspec.yaml) =~ ${SETONIX_VERSION_REGEX} ]]
-          SETONIX_VERSION="${BASH_REMATCH[1]}"
-          echo "SETONIX_VERSION=${SETONIX_VERSION}" >> $GITHUB_ENV
-          echo "SETONIX_VERSION=${SETONIX_VERSION}" >> $GITHUB_OUTPUT
-          SETONIX_BUILD_NUMBER="${BASH_REMATCH[2]}"
-          echo "SETONIX_BUILD_NUMBER=${SETONIX_BUILD_NUMBER}" >> $GITHUB_ENV
-          echo "SETONIX_BUILD_NUMBER=${SETONIX_BUILD_NUMBER}" >> $GITHUB_OUTPUT
+          SWAMP_VERSION_REGEX="version:\s(.+)\+(.+)"
+          [[ $(grep -E "${SWAMP_VERSION_REGEX}" app/pubspec.yaml) =~ ${SWAMP_VERSION_REGEX} ]]
+          SWAMP_VERSION="${BASH_REMATCH[1]}"
+          echo "SWAMP_VERSION=${SWAMP_VERSION}" >> $GITHUB_ENV
+          echo "SWAMP_VERSION=${SWAMP_VERSION}" >> $GITHUB_OUTPUT
+          SWAMP_BUILD_NUMBER="${BASH_REMATCH[2]}"
+          echo "SWAMP_BUILD_NUMBER=${SWAMP_BUILD_NUMBER}" >> $GITHUB_ENV
+          echo "SWAMP_BUILD_NUMBER=${SWAMP_BUILD_NUMBER}" >> $GITHUB_OUTPUT
           git config --global user.email "ci@linwood.dev"
           git config --global user.name "Linwood CI"
       - uses: actions/download-artifact@v4
@@ -109,9 +109,9 @@ jobs:
       - name: 📦 Zip artifacts
         run: |
           zip -r linwood-swamp-server-windows-x86_64.zip server-build-windows-x86_64/*
-          tar -C server-build-linux-x86_64 -czf linwood-setonix-server-linux-x86_64.tar.gz .
-          tar -C server-build-linux-arm64 -czf linwood-setonix-server-linux-arm64.tar.gz .
-          zip -r linwood-setonix-server-macos.zip server-build-macos/*
+          tar -C server-build-linux-x86_64 -czf linwood-swamp-server-linux-x86_64.tar.gz .
+          tar -C server-build-linux-arm64 -czf linwood-swamp-server-linux-arm64.tar.gz .
+          zip -r linwood-swamp-server-macos.zip server-build-macos/*
       - name: Configure git
         if: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' }}
         run: |
@@ -126,8 +126,8 @@ jobs:
           # Empty the output file if it exists
           > "$output_file"
 
-          # Find and loop through all files starting with "linwood-setonix" in the current directory
-          for file in linwood-setonix*; do
+          # Find and loop through all files starting with "linwood-swamp" in the current directory
+          for file in linwood-swamp*; do
             # Check if the file exists (in case no matches were found)
             if [ -f "$file" ]; then
               # Append sha256sum to the output file in the format "hash  filename"
@@ -135,7 +135,7 @@ jobs:
             fi
           done
 
-          echo "SHA256 hashes for files starting with 'linwood-setonix' saved to $output_file"
+          echo "SHA256 hashes for files starting with 'linwood-swamp' saved to $output_file"
       - name: 🚀 Deploy stable
         if: ${{ github.ref == 'refs/tags/stable' || (github.event_name == 'release' && !github.event.release.prerelease) }}
         uses: softprops/action-gh-release@v2
@@ -144,10 +144,10 @@ jobs:
           prerelease: true
           tag_name: stable
           files: |
-            linwood-setonix-server-linux-x86_64.tar.gz
-            linwood-setonix-server-linux-arm64.tar.gz
-            linwood-setonix-server-windows-x86_64.zip
-            linwood-setonix-server-macos.zip
+            linwood-swamp-server-linux-x86_64.tar.gz
+            linwood-swamp-server-linux-arm64.tar.gz
+            linwood-swamp-server-windows-x86_64.zip
+            linwood-swamp-server-macos.zip
             checksums.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -159,10 +159,10 @@ jobs:
           prerelease: true
           tag_name: nightly
           files: |
-            linwood-setonix-server-linux-x86_64.tar.gz
-            linwood-setonix-server-linux-arm64.tar.gz
-            linwood-setonix-server-windows-x86_64.zip
-            linwood-setonix-server-macos.zip
+            linwood-swamp-server-linux-x86_64.tar.gz
+            linwood-swamp-server-linux-arm64.tar.gz
+            linwood-swamp-server-windows-x86_64.zip
+            linwood-swamp-server-macos.zip
             checksums.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -172,10 +172,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: |
-            linwood-setonix-server-linux-x86_64.tar.gz
-            linwood-setonix-server-linux-arm64.tar.gz
-            linwood-setonix-server-windows-x86_64.zip
-            linwood-setonix-server-macos.zip
+            linwood-swamp-server-linux-x86_64.tar.gz
+            linwood-swamp-server-linux-arm64.tar.gz
+            linwood-swamp-server-windows-x86_64.zip
+            linwood-swamp-server-macos.zip
             checksums.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
