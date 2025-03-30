@@ -1,0 +1,65 @@
+name: Flutter build
+
+on:
+  push:
+    branches:
+      - "*"
+    tags:
+      - stable
+      - nightly
+  release:
+    types: [published]
+  pull_request:
+jobs:
+  build-server:
+    concurrency: ci-${{ github.ref }}
+    defaults:
+      run:
+        working-directory: server
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - name: ubuntu-24.04
+            label: linux-x86_64
+          - name: ubuntu-24.04-arm
+            label: linux-arm64
+          - name: windows-2025
+            label: windows-x86_64
+          - name: macos-latest
+            label: macos
+    runs-on: ${{ matrix.os.name }}
+    steps:
+      - name: ⬆️ Checkout
+        uses: actions/checkout@v4
+      - name: Install yq
+        if: ${{ matrix.os.name == 'windows-2025' }}
+        run: choco install yq
+      - name: Extract Dart SDK version from pubspec.yaml
+        id: dart_version
+        shell: bash
+        run: |
+          sdk_version=$(yq e '.environment.sdk' pubspec.yaml)
+          sdk_version="${sdk_version#^}"  # Removes leading '^' if present
+          echo "DART_SDK_VERSION=$sdk_version" >> $GITHUB_ENV
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+      - name: Print Dart SDK version
+        run: |
+          dart --version
+      - name: Install dependencies
+        run: |
+          dart pub get
+      - name: Compile
+        run: |
+          dart compile exe bin/swamp.dart
+      - name: Create directory
+        run: |
+          mkdir -p server-build
+          mv bin/swamp.exe server-build/
+      - name: Archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-build-${{ matrix.os.label }}
+          path: server/server-build
