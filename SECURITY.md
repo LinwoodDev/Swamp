@@ -12,9 +12,9 @@ Stay tuned for the first release!
 
 ## Reporting a Vulnerability
 
-Please use [the bug tracker](https://github.com/LinwoodDev/Setonix/issues) for reporting bugs. Please make sure you are on the latest stable or nightly release.
+Please use [the bug tracker](https://github.com/LinwoodDev/Swamp/issues) for reporting bugs. Please make sure you are on the latest stable or nightly release.
 
-Use [security@linwood.dev](mailto:security@linwood.dev) or [the github security advisory](https://github.com/LinwoodDev/Setonix/security/advisories) if you want to report a security vulnerability.
+Use [security@linwood.dev](mailto:security@linwood.dev) or [the github security advisory](https://github.com/LinwoodDev/Swamp/security/advisories) if you want to report a security vulnerability.
 **Don't use the bug tracker for security vulnerabilities!**
 
 ## Version scheme
@@ -29,4 +29,4 @@ There will be alphas, betas and release candidates on every major release, betas
 | main    |    ✅    |                   This branch is production ready. It will be updated when a new stable version is released! | Stable  |
 | develop |    ⚠️    | This branch is only for testing and developing. Pull request for feature requests should only be added here! | Nightly |
 
-Read more about nightly [here](https://setonix.world/community/nightly).
+Read more about nightly [here](https://swamp.world/community/nightly).
