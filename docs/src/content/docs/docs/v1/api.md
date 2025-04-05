@@ -2,8 +2,6 @@
 title: API Reference
 ---
 
-# API
-
 The current api version is `v0` and paths are prefixed with `/api/v0`.
 
 ## `GET /api/v0/info`

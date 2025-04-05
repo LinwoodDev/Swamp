@@ -4,7 +4,7 @@ title: Selfhosting
 
 ![Nightly release version](https://img.shields.io/badge/dynamic/yaml?color=1CC637&label=Nightly&query=%24.version&url=https%3A%2F%2Fraw.githubusercontent.com%2FLinwoodDev%2FSwamp%2Fnightly%2Fserver%2Fpubspec.yaml&style=for-the-badge)
 
-It is very easy to host your own butterfly web server.
+It is very easy to host your own swamp server.
 
 ## Simple server
 

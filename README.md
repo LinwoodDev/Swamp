@@ -42,7 +42,7 @@ Read more in the [documentation](https://swamp.linwood.dev/docs/v1/intro).
 
 ## Contributing
 
-We are happy to see that you are interested in contributing to Butterfly.
+We are happy to see that you are interested in contributing to Swamp.
 To get started, visit [the contributing guide](CONTRIBUTING.md).
 
 ## License
