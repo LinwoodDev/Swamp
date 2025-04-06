@@ -44,7 +44,47 @@ export default defineConfig({
             { label: "API", slug: "docs/v1/api" },
           ],
         },
-        { label: "Downloads", slug: "downloads" },
+        {
+          label: "Downloads",
+          link: "/downloads/",
+        },
+        {
+          label: "Community",
+          items: [
+            {
+              label: "Home",
+              link: "/community/",
+            },
+            {
+              label: "Branding",
+              link: "/community/branding/",
+            },
+            {
+              label: "Changelog",
+              link: "/changelog/",
+            },
+            {
+              label: "Contributing",
+              link: "/community/contributing/",
+            },
+            {
+              label: "Code of conduct",
+              link: "/community/code-of-conduct/",
+            },
+            {
+              label: "FAQ",
+              link: "/community/faq/",
+            },
+            {
+              label: "Versions",
+              link: "/community/versions/",
+            },
+            {
+              label: "Nightly builds",
+              link: "/community/nightly/",
+            },
+          ],
+        },
       ],
     }),
     AstroPWA({

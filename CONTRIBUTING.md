@@ -60,6 +60,4 @@ dart pub get
 dart run
 ```
 
-All subdirectories are documented in the `server/README.md` file.
-
 Fork the project and create a pull request to add your code to the `develop` branch.
