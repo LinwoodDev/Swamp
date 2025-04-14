@@ -61,7 +61,7 @@ final class SwampRoom {
   }
 }
 
-const kRoomIdLength = 8 * 4;
+const kRoomIdLength = 8;
 final random = Random.secure();
 
 Uint8List generateRandomRoomId() {
