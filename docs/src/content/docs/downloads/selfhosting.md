@@ -13,12 +13,32 @@ Install flutter and build the app using:
 ```bash
 cd server
 dart pub get
-dart compile exe bin/swamp.dart
+dart build web
 ```
 
 The executable can be found in `bin/swamp.exe`.
 
 ## Docker
 
-Clone the repository and build the `Dockerfile` using: `docker build -t linwood-swamp`.
+### Dockerhub
+
+You can pull the latest version of the image from Dockerhub using:
+
+```bash
+docker pull linwooddev/swamp
+```
+
+The tags are:
+
+- `:latest` is the current main branch
+- `:dev` is the current develop branch
+- `:stable` is the latest stable release (like the git tag)
+- `:nightly` is the latest nightly release (like the git tag)
+- Tags starting with `:v` are releases
+
+Start the server using: `docker run -p 8080:80 -d linwooddev/swamp`.
+
+### Selfbuilding
+
+Clone the repository and build thHe `Dockerfile` using: `docker build -t linwood-swamp`.
 Start the server using: `docker run -p 8080:80 -d linwood-swamp`.
