@@ -1,0 +1,75 @@
+name: Post Release Actions
+permissions:
+  contents: write
+
+concurrency:
+  group: post-release-${{ github.event.release.tag_name }}
+  cancel-in-progress: true
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-changelog-and-tag:
+    runs-on: ubuntu-latest
+    env:
+      TAG_NAME: ${{ github.event.release.tag_name }}
+      IS_PRERELEASE: ${{ github.event.release.prerelease }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Set Git User
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+      
+      - name: Extract Release Information
+        id: release_info
+        run: |
+          echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          echo "is_prerelease=${{ github.event.release.prerelease }}" >> $GITHUB_OUTPUT
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "${{ github.event.release.body }}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Update Changelog
+        run: |
+          TAG_NAME="${{ steps.release_info.outputs.tag_name }}"
+          RELEASE_BODY="${{ steps.release_info.outputs.body }}"
+          
+          # Add release notes to the CHANGELOG.md
+          sed -i "s|<!--ENTER CHANGELOG HERE-->|<!--ENTER CHANGELOG HERE-->\n\n## ${TAG_NAME}\n\n${RELEASE_BODY}\n|g" CHANGELOG.md
+          
+          git add CHANGELOG.md
+          git commit -m "Update CHANGELOG.md with ${TAG_NAME} release notes" || echo "No changes to commit"
+          git push origin HEAD:${GITHUB_REF#refs/heads/}
+      - name: Update Changelog in develop
+        run: |
+          TAG_NAME="${{ steps.release_info.outputs.tag_name }}"
+          RELEASE_BODY="${{ steps.release_info.outputs.body }}"
+          
+          # Add release notes to the CHANGELOG.md
+          sed -i "s|<!--ENTER CHANGELOG HERE-->|<!--ENTER CHANGELOG HERE-->\n\n## ${TAG_NAME}\n\n${RELEASE_BODY}\n|g" CHANGELOG.md
+          
+          git add CHANGELOG.md
+          git commit -m "Update CHANGELOG.md with ${TAG_NAME} release notes" || echo "No changes to commit"
+          git push origin HEAD:develop
+      
+      - name: Add nightly tag
+        if: startsWith(env.TAG_NAME, 'v') && env.IS_PRERELEASE == 'true'
+        shell: bash
+        run: |
+          git tag -f nightly
+          git push -f origin nightly
+      
+      - name: Add stable tag
+        if: startsWith(env.TAG_NAME, 'v') && env.IS_PRERELEASE == 'false'
+        shell: bash
+        run: |
+          git tag -f stable
+          git push -f origin stable
