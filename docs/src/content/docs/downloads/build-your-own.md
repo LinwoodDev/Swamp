@@ -2,15 +2,16 @@
 title: "Build your own"
 ---
 
-1. Install git and flutter (beta)
-2. Clone the repository
-3. Navigate to the app directory
-4. Use the flutter tool to compile the application
-   * `flutter build apk`
-   * `flutter build appbundle`
-   * `flutter build web`
-   * `flutter build linux`
-   * `flutter build windows`
-   * `flutter build ios --release --no-codesign`\
-   after that, create a folder named "Payload", copy Runner.app into it and zip the payload folder. Then rename ".zip" to ".ipa".
-5. The compiled files are in the build directory
+![Nightly release version](https://img.shields.io/badge/dynamic/yaml?color=1CC637&label=Nightly&query=%24.version&url=https%3A%2F%2Fraw.githubusercontent.com%2FLinwoodDev%2FSwamp%2Fnightly%2Fserver%2Fpubspec.yaml&style=for-the-badge)
+
+It is very easy to build the binaries.
+
+Install dart and build the server using:
+
+```bash
+cd server
+dart pub get
+dart compile exe
+```
+
+The executable can be found in `bin/swamp.exe`.
