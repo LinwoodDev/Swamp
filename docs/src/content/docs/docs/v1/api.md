@@ -4,6 +4,13 @@ title: API Reference
 
 The current api version is `v0` and paths are prefixed with `/api/v0`.
 
+:::note
+
+The current swamp release doesn't support room flags currently.
+You can only use the default room configuration currently, so dark room events get sent to all players.
+
+:::
+
 ## `GET /api/v0/info`
 
 Returns information about the server like the name but no sensitive information.
@@ -198,6 +205,8 @@ to set the application or:
 to remove the application restriction.
 
 ## Room Flags
+
+*Currently not implemented*
 
 | Flag | Description                                                                                          |
 | ---- | ---------------------------------------------------------------------------------------------------- |

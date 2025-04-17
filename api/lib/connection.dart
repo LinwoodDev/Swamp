@@ -15,7 +15,7 @@ part 'info.dart';
 const kDefaultSwampSplit = ':';
 const kSwampSchemePrefix = 'swamp+';
 
-class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
+class RawSwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     with
         NetworkerBase<RpcNetworkerPacket>,
         RpcNetworkerPipeMixin,
@@ -28,25 +28,101 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   ]);
   final StreamController<void> _onOpen = StreamController<void>.broadcast(),
       _onClosed = StreamController<void>.broadcast();
+  final Uri server;
+  @override
+  RpcConfig get config => RpcConfig(channelField: false);
+
+  @override
+  Uri get address => server;
+
+  @override
+  Channel? get receiverChannel => null;
+
+  WebSocketChannel? _channel;
+
+  @override
+  bool get isServer => false;
+
+  RawSwampConnection({required this.server});
+
+  @override
+  FutureOr<void> close() {
+    super.close();
+    _channel?.sink.close();
+    _channel = null;
+  }
+
+  @override
+  Future<void> init() async {
+    if (isOpen) {
+      return;
+    }
+    var address = this.address;
+    final scheme = address.scheme;
+    if (scheme.startsWith(kSwampSchemePrefix)) {
+      address = address.replace(
+        scheme: scheme.substring(kSwampSchemePrefix.length),
+      );
+    }
+    if (!address.hasScheme) {
+      address = address.replace(scheme: 'wss');
+    }
+    final channel =
+        _channel = WebSocketChannel.connect(address, protocols: ['swamp-0']);
+    channel.stream.listen(
+      (event) {
+        if (event is String) {
+          event = Uint8List.fromList(event.codeUnits);
+        }
+        onMessage(event);
+      },
+      onDone: () {
+        _onClosed.add(null);
+      },
+      onError: (error) {
+        _onClosed.addError(error);
+      },
+      cancelOnError: true,
+    );
+    await channel.ready;
+    _onOpen.add(null);
+  }
+
+  @override
+  Future<void> onMessage(
+    Uint8List data, [
+    Channel channel = kAnyChannel,
+  ]) async {
+    await super.onMessage(data, channel);
+    runFunction(decode(data), channel: kAuthorityChannel);
+  }
+
+  @override
+  bool get isClosed => _channel == null || _channel?.closeCode != null;
+
+  @override
+  Stream<void> get onClosed => _onClosed.stream;
+
+  @override
+  Stream<void> get onOpen => _onOpen.stream;
+
+  @override
+  void sendPacket(Uint8List data, Channel channel) => _channel?.sink.add(data);
+}
+
+class SwampConnection extends RawSwampConnection {
   final StreamController<void> _onWelcome = StreamController<void>.broadcast();
   final BehaviorSubject<RoomInfo> _onRoomInfo = BehaviorSubject();
   final String Function(Uint8List) roomCodeEncoder;
   final Uint8List Function(String) roomCodeDecoder;
-  final Uri server;
   final Uint8List? roomId;
   final E2EENetworkerPipe? e2eePipe;
   final RawNetworkerPipe messagePipe;
   final String split;
   final RoomFlags flags;
 
-  WebSocketChannel? _channel;
-
   @override
   bool get isServer => roomInfo?.currentId == kAuthorityChannel;
-  @override
-  Channel? get receiverChannel => null;
-  @override
-  RpcConfig get config => RpcConfig(channelField: false);
 
   @override
   Uri get address {
@@ -85,7 +161,7 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   Stream<void> get onWelcome => _onWelcome.stream;
 
   SwampConnection({
-    required this.server,
+    required super.server,
     this.roomId,
     this.roomCodeEncoder = encodeRoomCode,
     this.roomCodeDecoder = decodeRoomCode,
@@ -156,46 +232,8 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   }
 
   @override
-  FutureOr<void> close() {
-    super.close();
-    _channel?.sink.close();
-    _channel = null;
-  }
-
-  @override
   Future<void> init() async {
-    if (isOpen) {
-      return;
-    }
-    var address = this.address;
-    final scheme = address.scheme;
-    if (scheme.startsWith(kSwampSchemePrefix)) {
-      address = address.replace(
-        scheme: scheme.substring(kSwampSchemePrefix.length),
-      );
-    }
-    if (!address.hasScheme) {
-      address = address.replace(scheme: 'wss');
-    }
-    final channel =
-        _channel = WebSocketChannel.connect(address, protocols: ['swamp-0']);
-    channel.stream.listen(
-      (event) {
-        if (event is String) {
-          event = Uint8List.fromList(event.codeUnits);
-        }
-        onMessage(event);
-      },
-      onDone: () {
-        _onClosed.add(null);
-      },
-      onError: (error) {
-        _onClosed.addError(error);
-      },
-      cancelOnError: true,
-    );
-    await channel.ready;
-    _onOpen.add(null);
+    await super.init();
     return _sendRequest();
   }
 
@@ -211,24 +249,6 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       );
     }
   }
-
-  @override
-  Future<void> onMessage(
-    Uint8List data, [
-    Channel channel = kAnyChannel,
-  ]) async {
-    await super.onMessage(data, channel);
-    runFunction(decode(data), channel: kAuthorityChannel);
-  }
-
-  @override
-  bool get isClosed => _channel == null || _channel?.closeCode != null;
-
-  @override
-  Stream<void> get onClosed => _onClosed.stream;
-
-  @override
-  Stream<void> get onOpen => _onOpen.stream;
 
   void _initFunctions() {
     registerNamedFunction(SwampEvent.roomInfo).read.listen((packet) {
@@ -282,7 +302,4 @@ class SwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       }
     });
   }
-
-  @override
-  void sendPacket(Uint8List data, Channel channel) => _channel?.sink.add(data);
 }
