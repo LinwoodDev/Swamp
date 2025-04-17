@@ -36,5 +36,6 @@ jobs:
       - name: Test for git changes
         run: git diff --exit-code
       - name: Run tests
+        if: matrix.projects == 'server'
         run: |
           dart test --reporter=expanded

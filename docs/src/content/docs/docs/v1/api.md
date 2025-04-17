@@ -104,6 +104,7 @@ If you create a room but it fails.
 | Reason | Description        |
 | ------ | ------------------ |
 | 0x00   | Room limit reached |
+| 0x01   | In room already    |
 | 0xFF   | Unknown error      |
 
 ##### Types

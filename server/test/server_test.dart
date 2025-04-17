@@ -40,14 +40,11 @@ void main() {
     return server.close();
   });
 
-  group('General Usage Tests', () {
-    test('Create room', () async {
-      final completer = Completer<void>();
+  group('Room Creation Tests', () {
+    test('Create room successfully', () async {
+      final completer = Completer<RoomInfo>();
 
-      // Add debug print
       print('Setting up roomInfo listener');
-
-      // Listen for the roomInfo event
       var subscription = client1
           .registerNamedFunction(SwampEvent.roomInfo)
           .read
@@ -58,110 +55,163 @@ void main() {
               print(
                 'Room info parsed: roomId=${roomInfo.roomId}, currentId=${roomInfo.currentId}',
               );
-              expect(roomInfo.roomId, isNotNull);
-              expect(roomInfo.currentId, 1);
-              expect(roomInfo.flags, 0);
-              completer.complete();
+              completer.complete(roomInfo);
             } catch (e) {
               print('Error parsing roomInfo: $e');
               completer.completeError(e);
             }
           });
 
-      // Add debug print before sending command
       print('Sending createRoom command');
-
-      // Send the command to create a room
       client1.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
 
-      // Wait for the completer to complete or timeout
+      RoomInfo roomInfo;
       try {
-        await completer.future;
+        roomInfo = await completer.future;
+
+        // Validate room creation
+        expect(roomInfo.roomId, isNotNull);
+        expect(roomInfo.currentId, 1);
+        expect(roomInfo.flags, 0);
+
         print('Test completed successfully');
       } finally {
         subscription.cancel();
       }
     });
-    test('Joining room', () async {
-      final completer = Completer<Uint8List>();
+  });
 
-      // Listen for the roomInfo event
+  group('Room Joining Tests', () {
+    late Uint8List roomId;
+
+    setUp(() async {
+      // Create a room first
+      final completer = Completer<Uint8List>();
       var subscription = client1
           .registerNamedFunction(SwampEvent.roomInfo)
           .read
           .listen((packet) {
-            try {
-              final roomInfo = RoomInfo.fromBytes(packet.data);
-              expect(roomInfo.roomId, isNotNull);
-              expect(roomInfo.currentId, 1);
-              expect(roomInfo.flags, 0);
-              completer.complete(roomInfo.roomId);
-            } catch (e) {
-              completer.completeError(e);
-            }
+            final roomInfo = RoomInfo.fromBytes(packet.data);
+            completer.complete(roomInfo.roomId);
           });
 
-      // Send the command to create a room
       client1.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
 
-      final joinedCompleter = Completer<void>();
-
-      // Listen for joinRoom event
-      var joinedSubscription = client1
-          .registerNamedFunction(SwampEvent.playerJoined)
-          .read
-          .listen((packet) {
-            try {
-              final playerId = packet.data[0] << 8 | packet.data[1];
-              expect(playerId, 2);
-              joinedCompleter.complete();
-            } catch (e) {
-              joinedCompleter.completeError(e);
-            }
-          });
-
-      // Wait for the completer to complete or timeout
-      Uint8List? roomId;
       try {
         roomId = await completer.future;
       } finally {
         subscription.cancel();
       }
-      expect(roomId, isNotNull);
+    });
 
-      // Now join the room with client2
-      final joinCompleter = Completer<void>();
+    test('Client can join an existing room', () async {
+      final joinCompleter = Completer<RoomInfo>();
+
       var joinSubscription = client2
           .registerNamedFunction(SwampEvent.roomInfo)
           .read
           .listen((packet) {
             try {
               final roomInfo = RoomInfo.fromBytes(packet.data);
-              expect(roomInfo.roomId, roomId);
-              expect(roomInfo.currentId, 2);
-              expect(roomInfo.flags, 0);
-              joinCompleter.complete();
+              joinCompleter.complete(roomInfo);
             } catch (e) {
               joinCompleter.completeError(e);
             }
           });
+
+      // Join the room with client2
       client2.sendNamedFunction(SwampCommand.joinRoom, roomId);
-      // Wait for the join completer to complete or timeout
+
+      RoomInfo joinedRoomInfo;
+      try {
+        joinedRoomInfo = await joinCompleter.future;
+
+        // Validate room joining
+        expect(joinedRoomInfo.roomId, roomId);
+        expect(joinedRoomInfo.currentId, 2);
+        expect(joinedRoomInfo.flags, 0);
+      } finally {
+        joinSubscription.cancel();
+      }
+    });
+
+    test('Host is notified when another client joins', () async {
+      final joinedCompleter = Completer<int>();
+
+      // Listen for player joined event on host client
+      var joinedSubscription = client1
+          .registerNamedFunction(SwampEvent.playerJoined)
+          .read
+          .listen((packet) {
+            try {
+              final playerId = packet.data[0] << 8 | packet.data[1];
+              joinedCompleter.complete(playerId);
+            } catch (e) {
+              joinedCompleter.completeError(e);
+            }
+          });
+
+      // Join the room with client2
+      client2.sendNamedFunction(SwampCommand.joinRoom, roomId);
+
+      try {
+        final playerId = await joinedCompleter.future;
+
+        // Validate player joined notification
+        expect(playerId, 2);
+      } finally {
+        joinedSubscription.cancel();
+      }
+    });
+  });
+
+  group('Messaging Tests', () {
+    late Uint8List roomId;
+
+    setUp(() async {
+      // Create a room first
+      final roomCompleter = Completer<Uint8List>();
+      var roomSubscription = client1
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen((packet) {
+            final roomInfo = RoomInfo.fromBytes(packet.data);
+            roomCompleter.complete(roomInfo.roomId);
+          });
+
+      client1.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+
+      try {
+        roomId = await roomCompleter.future;
+      } finally {
+        roomSubscription.cancel();
+      }
+
+      // Join the room with client2
+      final joinCompleter = Completer<void>();
+      var joinSubscription = client2
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen((packet) {
+            joinCompleter.complete();
+          });
+
+      client2.sendNamedFunction(SwampCommand.joinRoom, roomId);
+
       try {
         await joinCompleter.future;
       } finally {
         joinSubscription.cancel();
       }
 
-      // Wait for the joined completer to complete or timeout
-      try {
-        await joinedCompleter.future;
-      } finally {
-        joinedSubscription.cancel();
-      }
+      // Wait to ensure join is fully processed
+      await Future.delayed(const Duration(milliseconds: 100));
+    });
 
-      final messageReceived = Completer<void>();
+    test('Client can send message to room', () async {
+      final messageReceived = Completer<String>();
       const message = 'Hello, World!';
+
       var messageSubscription = client1
           .registerNamedFunction(SwampEvent.message)
           .read
@@ -170,19 +220,345 @@ void main() {
               final receivedMessage = String.fromCharCodes(
                 packet.data.sublist(2),
               );
-              expect(receivedMessage, message);
-              messageReceived.complete();
+              messageReceived.complete(receivedMessage);
             } catch (e) {
               messageReceived.completeError(e);
             }
           });
+
+      // Send message from client2 to the room
       client2.sendNamedFunction(
         SwampCommand.message,
         Uint8List.fromList([0, 0, ...message.codeUnits]),
       );
-      // Wait for the message to be received or timeout
+
       try {
-        await messageReceived.future;
+        final receivedMessage = await messageReceived.future;
+
+        // Validate received message
+        expect(receivedMessage, message);
+      } finally {
+        messageSubscription.cancel();
+      }
+    });
+
+    test('Messages include correct sender ID', () async {
+      final messageReceived = Completer<Map<String, dynamic>>();
+      const message = 'Message from client 2';
+
+      var messageSubscription = client1
+          .registerNamedFunction(SwampEvent.message)
+          .read
+          .listen((packet) {
+            try {
+              final senderId = packet.data[0] << 8 | packet.data[1];
+              final receivedMessage = String.fromCharCodes(
+                packet.data.sublist(2),
+              );
+              messageReceived.complete({
+                'senderId': senderId,
+                'message': receivedMessage,
+              });
+            } catch (e) {
+              messageReceived.completeError(e);
+            }
+          });
+
+      // Send message from client2 to the room
+      client2.sendNamedFunction(
+        SwampCommand.message,
+        Uint8List.fromList([0, 0, ...message.codeUnits]),
+      );
+
+      try {
+        final result = await messageReceived.future;
+
+        // Validate sender ID and message content
+        expect(result['senderId'], 2);
+        expect(result['message'], message);
+      } finally {
+        messageSubscription.cancel();
+      }
+    });
+  });
+
+  group('Disconnection Tests', () {
+    late Uint8List roomId;
+    late int client2Id;
+
+    setUp(() async {
+      // Create a room with client1
+      final roomCompleter = Completer<Uint8List>();
+      var roomSubscription = client1
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen((packet) {
+            final roomInfo = RoomInfo.fromBytes(packet.data);
+            roomCompleter.complete(roomInfo.roomId);
+          });
+
+      client1.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+
+      try {
+        roomId = await roomCompleter.future;
+      } finally {
+        roomSubscription.cancel();
+      }
+
+      // Join the room with client2
+      final joinCompleter = Completer<int>();
+      var joinSubscription = client1
+          .registerNamedFunction(SwampEvent.playerJoined)
+          .read
+          .listen((packet) {
+            final id = packet.data[0] << 8 | packet.data[1];
+            joinCompleter.complete(id);
+          });
+
+      client2.sendNamedFunction(SwampCommand.joinRoom, roomId);
+
+      try {
+        client2Id = await joinCompleter.future;
+      } finally {
+        joinSubscription.cancel();
+      }
+    });
+
+    test('Host receives notification when client disconnects', () async {
+      final disconnectCompleter = Completer<int>();
+
+      var disconnectSubscription = client1
+          .registerNamedFunction(SwampEvent.playerLeft)
+          .read
+          .listen((packet) {
+            final leftId = packet.data[0] << 8 | packet.data[1];
+            disconnectCompleter.complete(leftId);
+          });
+
+      // Disconnect client2
+      await client2.close();
+
+      try {
+        final leftId = await disconnectCompleter.future;
+
+        // Validate the correct client ID was reported as disconnected
+        expect(leftId, client2Id);
+      } finally {
+        disconnectSubscription.cancel();
+      }
+
+      // Recreate client2 for tearDown
+      client2 = RawSwampConnection(server: uri);
+      await client2.init();
+    });
+  });
+
+  group('Room Closing Tests', () {
+    late Uint8List roomId;
+
+    setUp(() async {
+      // Create a room with client1
+      final roomCompleter = Completer<Uint8List>();
+      var roomSubscription = client1
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen((packet) {
+            final roomInfo = RoomInfo.fromBytes(packet.data);
+            roomCompleter.complete(roomInfo.roomId);
+          });
+
+      client1.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+
+      try {
+        roomId = await roomCompleter.future;
+      } finally {
+        roomSubscription.cancel();
+      }
+
+      // Join with client2
+      final joinCompleter = Completer<void>();
+      var joinSubscription = client2
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen((packet) {
+            joinCompleter.complete();
+          });
+
+      client2.sendNamedFunction(SwampCommand.joinRoom, roomId);
+
+      try {
+        await joinCompleter.future;
+      } finally {
+        joinSubscription.cancel();
+      }
+    });
+
+    test('Host can close a room', () async {
+      final roomClosedCompleter = Completer<void>();
+
+      var closedSubscription = client2
+          .registerNamedFunction(SwampEvent.welcome)
+          .read
+          .listen((packet) {
+            roomClosedCompleter.complete();
+          });
+
+      // Host closes the room
+      client1.sendNamedFunction(SwampCommand.leaveRoom, Uint8List(0));
+
+      try {
+        await roomClosedCompleter.future;
+
+        // Successfully received room closed event
+        expect(true, isTrue);
+      } finally {
+        closedSubscription.cancel();
+      }
+    });
+  });
+
+  group('Error Handling Tests', () {
+    test('Attempting to join non-existent room returns error', () async {
+      final errorCompleter = Completer<int>();
+
+      var errorSubscription = client1
+          .registerNamedFunction(SwampEvent.roomJoinFailed)
+          .read
+          .listen((packet) {
+            final errorCode = packet.data[0];
+            errorCompleter.complete(errorCode);
+          });
+
+      // Try to join a non-existent room
+      final nonExistentRoomId = Uint8List.fromList(List.filled(16, 42));
+      client1.sendNamedFunction(SwampCommand.joinRoom, nonExistentRoomId);
+
+      try {
+        final errorCode = await errorCompleter.future;
+
+        // Validate error code (assuming error code for room not found is 1)
+        expect(errorCode, JoinFailedReason.roomNotFound.value);
+      } finally {
+        errorSubscription.cancel();
+      }
+    });
+
+    test('Client cannot create room while already in a room', () async {
+      // First create a room
+      final roomCompleter = Completer<Uint8List>();
+      var roomSubscription = client1
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen((packet) {
+            final roomInfo = RoomInfo.fromBytes(packet.data);
+            roomCompleter.complete(roomInfo.roomId);
+          });
+
+      client1.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+
+      try {
+        await roomCompleter.future;
+      } finally {
+        roomSubscription.cancel();
+      }
+
+      // Now try to create another room while still in the first one
+      final errorCompleter = Completer<int>();
+      var errorSubscription = client1
+          .registerNamedFunction(SwampEvent.roomCreationFailed)
+          .read
+          .listen((packet) {
+            final errorCode = packet.data[0];
+            errorCompleter.complete(errorCode);
+          });
+
+      client1.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+
+      try {
+        final errorCode = await errorCompleter.future;
+
+        // Validate error code (assuming error code for already in room is 2)
+        expect(errorCode, CreationFailedReason.inRoom.value);
+      } finally {
+        errorSubscription.cancel();
+      }
+    });
+  });
+
+  group('Direct Messaging Tests', () {
+    late Uint8List roomId;
+
+    setUp(() async {
+      // Create and join room as in previous tests
+      final roomCompleter = Completer<Uint8List>();
+      var roomSubscription = client1
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen((packet) {
+            final roomInfo = RoomInfo.fromBytes(packet.data);
+            roomCompleter.complete(roomInfo.roomId);
+          });
+
+      client1.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+
+      try {
+        roomId = await roomCompleter.future;
+      } finally {
+        roomSubscription.cancel();
+      }
+
+      // Join with client2
+      final joinCompleter = Completer<void>();
+      var joinSubscription = client2
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen((packet) {
+            joinCompleter.complete();
+          });
+
+      client2.sendNamedFunction(SwampCommand.joinRoom, roomId);
+
+      try {
+        await joinCompleter.future;
+      } finally {
+        joinSubscription.cancel();
+      }
+    });
+
+    test('Client can send direct message to another client', () async {
+      final directMessageCompleter = Completer<Map<String, dynamic>>();
+      const message = 'Direct message test';
+
+      var messageSubscription = client1
+          .registerNamedFunction(SwampEvent.message)
+          .read
+          .listen((packet) {
+            try {
+              final senderId = packet.data[0] << 8 | packet.data[1];
+              final receivedMessage = String.fromCharCodes(
+                packet.data.sublist(2),
+              );
+              directMessageCompleter.complete({
+                'senderId': senderId,
+                'message': receivedMessage,
+              });
+            } catch (e) {
+              directMessageCompleter.completeError(e);
+            }
+          });
+
+      // Client2 sends direct message to client1 (ID 1)
+      final directMessageData = Uint8List.fromList(
+        [0, 1, ...message.codeUnits], // First two bytes represent target ID (1)
+      );
+      client2.sendNamedFunction(SwampCommand.message, directMessageData);
+
+      try {
+        final result = await directMessageCompleter.future;
+
+        // Validate sender ID and message content
+        expect(result['senderId'], 2); // Client2's ID
+        expect(result['message'], message);
       } finally {
         messageSubscription.cancel();
       }

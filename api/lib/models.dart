@@ -128,6 +128,7 @@ enum JoinFailedReason {
 
 enum CreationFailedReason {
   limitReached,
+  inRoom,
   unknown;
 
   int get value => this == unknown ? 0xFF : index;
