@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:consoler/consoler.dart';
-import 'package:swamp/server.dart';
+import 'package:swamp/src/server.dart';
 
 final welcomeMessage = """
    _____      _____   __  ______ 

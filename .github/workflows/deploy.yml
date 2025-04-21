@@ -42,3 +42,40 @@ jobs:
           echo "$SFTP_KNOWN_HOSTS" > known_hosts
           chmod 600 known_hosts
           rsync -avz --delete -e "ssh -i sftp_key -o UserKnownHostsFile=known_hosts" dist/ $SFTP_USERNAME@$SFTP_HOST:/var/www/swamp.linwood
+  doc:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: ⬆️ Checkout
+        uses: actions/checkout@v4
+      - name: Extract Dart SDK version from pubspec.yaml
+        id: dart_version
+        shell: bash
+        run: |
+          sdk_version=$(yq e '.environment.sdk' pubspec.yaml)
+          sdk_version="${sdk_version#^}"  # Removes leading '^' if present
+          echo "DART_SDK_VERSION=$sdk_version" >> $GITHUB_ENV
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+      - name: Install dependencies
+        run: |
+          dart pub get
+      - name: Generate documentation
+        run: |
+          dart doc
+      - name: Deploy to SFTP
+        if: github.ref == 'refs/heads/develop'
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
+          SFTP_KEY: ${{ secrets.SFTP_KEY }}
+          SFTP_KNOWN_HOSTS: ${{secrets.SFTP_KNOWN_HOSTS}}
+        run: |
+          echo "$SFTP_KEY" > sftp_key
+          chmod 600 sftp_key
+          echo "$SFTP_KNOWN_HOSTS" > known_hosts
+          chmod 600 known_hosts
+          rsync -avz --delete -e "ssh -i sftp_key -o UserKnownHostsFile=known_hosts" doc/api/ $SFTP_USERNAME@$SFTP_HOST:/var/www/api.swamp.linwood

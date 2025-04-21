@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:consoler/consoler.dart';
 import 'package:networker/networker.dart';
 import 'package:networker_socket/server.dart';
-import 'package:swamp/room.dart';
+import 'package:swamp/src/room.dart';
 import 'package:swamp/src/programs/room.dart';
 import 'package:swamp/src/programs/rooms.dart';
 import 'package:swamp/src/programs/stop.dart';

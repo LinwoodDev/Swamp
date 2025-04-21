@@ -1,5 +1,5 @@
 import 'package:consoler/consoler.dart';
-import 'package:swamp/room.dart';
+import 'package:swamp/src/room.dart';
 import 'package:swamp_api/models.dart';
 
 const kPageSize = 10;

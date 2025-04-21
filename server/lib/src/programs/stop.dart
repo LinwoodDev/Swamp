@@ -1,5 +1,5 @@
 import 'package:consoler/consoler.dart';
-import 'package:swamp/server.dart';
+import 'package:swamp/src/server.dart';
 
 class StopProgram extends ConsoleProgram {
   final SwampServer server;
