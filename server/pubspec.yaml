@@ -1,5 +1,5 @@
 name: swamp
-description: A server app using the shelf package and Docker.
+description: Universal Secure Web-Socket Application Messaging Proxy for Linwood Apps
 version: 1.0.0
 publish_to: none
 # repository: https://github.com/my_org/my_repo
