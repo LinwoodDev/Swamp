@@ -65,7 +65,7 @@ jobs:
           dart pub get
       - name: Generate documentation
         run: |
-          dart doc
+          dart run dartdoc
       - name: Deploy to SFTP
         if: github.ref == 'refs/heads/develop'
         env:

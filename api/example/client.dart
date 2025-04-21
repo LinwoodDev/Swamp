@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:swamp_api/connection.dart';
-import 'package:swamp_api/models.dart';
 
 Future<void> main(List<String> args) async {
   if (args.isEmpty || args.length > 2) {

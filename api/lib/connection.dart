@@ -7,10 +7,12 @@ import 'package:cryptography_plus/cryptography_plus.dart';
 import 'package:networker/networker.dart';
 import 'package:networker_crypto/e2ee.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:swamp_api/models.dart';
+import 'models.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-part 'info.dart';
+export 'models.dart';
+
+part 'src/info.dart';
 
 const kDefaultSwampSplit = ':';
 const kSwampSchemePrefix = 'swamp+';

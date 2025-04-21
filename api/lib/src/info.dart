@@ -1,4 +1,4 @@
-part of 'connection.dart';
+part of '../connection.dart';
 
 final class SwampClientConnectionInfo extends ConnectionInfo {
   final SwampConnection parent;

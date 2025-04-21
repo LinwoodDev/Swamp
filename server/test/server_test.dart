@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:consoler/consoler.dart';
 import 'package:swamp/src/server.dart';
 import 'package:swamp_api/connection.dart';
-import 'package:swamp_api/models.dart';
 import 'package:test/test.dart';
 
 void main() {
