@@ -2,7 +2,7 @@
 title: Introduction
 ---
 
-> Welcome to Swamp, the universal secure web-socket application messaging protocol
+> Welcome to Swamp, the universal simple web-socket application messaging protocol
 
 ## What is Swamp?
 

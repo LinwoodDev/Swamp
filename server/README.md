@@ -1,6 +1,6 @@
 # Swamp
 
-> WIP: Universal Secure Web-Socket Application Messaging Proxy for Linwood Apps
+> WIP: Universal Simple Web-Socket Application Messaging Proxy for Linwood Apps
 
 Read more in the [documentation](https://swamp.linwood.dev/docs/v1/intro).
 

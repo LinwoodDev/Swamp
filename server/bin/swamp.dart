@@ -9,7 +9,7 @@ final welcomeMessage = """
  _\\ \\ | |/ |/ / __ |/ /|_/ / ___/
 /___/ |__/|__/_/ |_/_/  /_/_/    
 
-Universal Secure Web-Socket Application Messaging Proxy (Linwood SWAMP)
+Universal Simple Web-Socket Application Messaging Proxy (Linwood SWAMP)
 
 Website: https://swamp.linwood.dev
 

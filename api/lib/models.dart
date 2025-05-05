@@ -131,7 +131,8 @@ enum JoinFailedReason {
 enum CreationFailedReason {
   limitReached,
   inRoom,
-  unknown;
+  unknown,
+  unsupportedFlags;
 
   int get value => this == unknown ? 0xFF : index;
 

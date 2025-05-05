@@ -105,6 +105,7 @@ If you create a room but it fails.
 | ------ | ------------------ |
 | 0x00   | Room limit reached |
 | 0x01   | In room already    |
+| 0x02   | Flags unsupported  |
 | 0xFF   | Unknown error      |
 
 ##### Types
@@ -169,9 +170,11 @@ There are some special player ids:
 
 #### Create Room
 
-|      |                       |
-| ---- | --------------------- |
-| 0x03 | Max Players (2 Bytes) |
+|      |                |                                 |
+| ---- | -------------- | ------------------------------- |
+| 0x03 | Flags (1 Byte) | Max Players (2 Bytes, optional) |
+
+If Max Players is not set or set to `0`, the server will use the default value.
 
 #### Kick Player
 

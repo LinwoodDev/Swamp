@@ -3,14 +3,11 @@ import 'dart:typed_data';
 import 'package:consoler/consoler.dart';
 import 'package:networker/networker.dart';
 import 'package:networker_socket/server.dart';
-import 'package:swamp/src/room.dart';
-import 'package:swamp/src/programs/room.dart';
-import 'package:swamp/src/programs/rooms.dart';
-import 'package:swamp/src/programs/stop.dart';
-import 'package:swamp_api/models.dart';
+import 'package:swamp/swamp.dart';
 
 class SwampServer extends NetworkerSocketServer {
-  final SwampRoomManager _roomManager = SwampRoomManager();
+  final SwampConfig config;
+  late final SwampRoomManager _roomManager = SwampRoomManager(config);
   final NamedRpcClientNetworkerPipe<SwampCommand, SwampEvent> _rpcPipe =
       NamedRpcClientNetworkerPipe(config: RpcConfig(channelField: false));
   final Consoler _consoler = Consoler(
@@ -22,6 +19,7 @@ class SwampServer extends NetworkerSocketServer {
   SwampServer(
     super.serverAddress,
     super.port, {
+    this.config = const SwampConfig(),
     bool withConsole = true,
     LogLevel? minLogLevel,
     super.securityContext,
@@ -62,7 +60,16 @@ class SwampServer extends NetworkerSocketServer {
         _roomManager.sendMessageToRoom(sender, receiver, message);
       })
       ..registerNamedFunction(SwampCommand.createRoom).read.listen((event) {
-        _roomManager.addRoom(event.channel);
+        final flags = RoomFlags(event.data.elementAtOrNull(0) ?? 0);
+        final maxPlayers =
+            event.data.length >= 3
+                ? event.data.sublist(1, 3).buffer.asByteData().getUint16(0)
+                : null;
+        _roomManager.addRoom(
+          event.channel,
+          roomFlags: flags,
+          maxPlayers: maxPlayers,
+        );
         log(
           'Room created: ${_roomManager.getChannelRoom(event.channel)}',
           LogLevel.info,

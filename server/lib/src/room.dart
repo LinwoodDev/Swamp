@@ -3,11 +3,13 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:networker/networker.dart';
+import 'package:swamp/src/config.dart';
 import 'package:swamp_api/models.dart';
 
 final class SwampRoom {
   final Uint8List roomId;
   final RoomFlags roomFlags;
+  final Channel maxPlayers;
   final Uint8List? application;
   // Key is the player, value is the channel.
   final Map<Channel, Channel> _playerChannels = {};
@@ -16,7 +18,11 @@ final class SwampRoom {
     this.roomId, {
     this.roomFlags = const RoomFlags(),
     this.application,
+    required this.maxPlayers,
   });
+
+  SwampRoom.mock(Uint8List roomId)
+    : this._(roomId, maxPlayers: 0, application: null);
 
   @override
   String toString() => encodeRoomCode(roomId);
@@ -52,6 +58,9 @@ final class SwampRoom {
 
   Channel _findAvailableChannel() {
     final keys = _playerChannels.values.toList();
+    if (keys.length >= maxPlayers) {
+      return kAnyChannel;
+    }
     for (var i = 2; i < 2 ^ 16; i++) {
       if (!keys.contains(i)) {
         return i;
@@ -71,9 +80,12 @@ Uint8List generateRandomRoomId() {
 }
 
 final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
+  final SwampConfig config;
   final Set<SwampRoom> _rooms = {};
   final Map<Channel, SwampRoom> _joined = {};
   final Map<Channel, Uint8List> _application = {};
+
+  SwampRoomManager(this.config);
 
   SwampRoom? joinRoom(Uint8List roomId, Channel player) {
     final room = getRoom(roomId);
@@ -85,6 +97,10 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     if (application != null &&
         room.application != null &&
         encodeRoomCode(room.application!) != encodeRoomCode(application)) {
+      _sendJoinFailed(player, JoinFailedReason.roomFull);
+      return null;
+    }
+    if (room.players.length >= config.maxPlayers) {
       _sendJoinFailed(player, JoinFailedReason.roomFull);
       return null;
     }
@@ -106,19 +122,32 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     return room;
   }
 
-  SwampRoom addRoom(Channel owner, [RoomFlags roomFlags = const RoomFlags()]) {
+  SwampRoom? addRoom(
+    Channel owner, {
+    Channel? maxPlayers,
+    RoomFlags roomFlags = const RoomFlags(),
+  }) {
     var room = getChannelRoom(owner);
     if (room != null) {
       _sendCreationFailed(owner, CreationFailedReason.inRoom);
+      return null;
     }
     var roomId = generateRandomRoomId();
-    while (_rooms.contains(SwampRoom._(roomId))) {
+    while (_rooms.contains(SwampRoom.mock(roomId))) {
       roomId = generateRandomRoomId();
+    }
+    if (roomFlags.isDarkRoom && config.noDarkRooms) {
+      _sendCreationFailed(owner, CreationFailedReason.unknown);
+      return null;
+    }
+    if (maxPlayers == null || maxPlayers > config.maxPlayers) {
+      maxPlayers = config.maxPlayers;
     }
     room = SwampRoom._(
       roomId,
       roomFlags: roomFlags,
       application: _application[owner],
+      maxPlayers: maxPlayers,
     );
     _rooms.add(room);
     _joined[owner] = room;
@@ -128,9 +157,9 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
   }
 
   FutureOr<void> removeRoom(Uint8List roomId) =>
-      _rooms.remove(SwampRoom._(roomId));
+      _rooms.remove(SwampRoom.mock(roomId));
 
-  SwampRoom? getRoom(Uint8List roomId) => _rooms.lookup(SwampRoom._(roomId));
+  SwampRoom? getRoom(Uint8List roomId) => _rooms.lookup(SwampRoom.mock(roomId));
 
   SwampRoom? getChannelRoom(Channel channel) => _joined[channel];
 
