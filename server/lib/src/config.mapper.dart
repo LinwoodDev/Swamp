@@ -21,14 +21,26 @@ class SwampConfigMapper extends ClassMapperBase<SwampConfig> {
   final String id = 'SwampConfig';
 
   static String _$description(SwampConfig v) => v.description;
-  static const Field<SwampConfig, String> _f$description =
-      Field('description', _$description, opt: true, def: "");
+  static const Field<SwampConfig, String> _f$description = Field(
+    'description',
+    _$description,
+    opt: true,
+    def: "",
+  );
   static int _$maxPlayers(SwampConfig v) => v.maxPlayers;
-  static const Field<SwampConfig, int> _f$maxPlayers =
-      Field('maxPlayers', _$maxPlayers, opt: true, def: 256);
+  static const Field<SwampConfig, int> _f$maxPlayers = Field(
+    'maxPlayers',
+    _$maxPlayers,
+    opt: true,
+    def: 256,
+  );
   static bool _$noDarkRooms(SwampConfig v) => v.noDarkRooms;
-  static const Field<SwampConfig, bool> _f$noDarkRooms =
-      Field('noDarkRooms', _$noDarkRooms, opt: true, def: false);
+  static const Field<SwampConfig, bool> _f$noDarkRooms = Field(
+    'noDarkRooms',
+    _$noDarkRooms,
+    opt: true,
+    def: false,
+  );
 
   @override
   final MappableFields<SwampConfig> fields = const {
@@ -39,9 +51,10 @@ class SwampConfigMapper extends ClassMapperBase<SwampConfig> {
 
   static SwampConfig _instantiate(DecodingData data) {
     return SwampConfig(
-        description: data.dec(_f$description),
-        maxPlayers: data.dec(_f$maxPlayers),
-        noDarkRooms: data.dec(_f$noDarkRooms));
+      description: data.dec(_f$description),
+      maxPlayers: data.dec(_f$maxPlayers),
+      noDarkRooms: data.dec(_f$noDarkRooms),
+    );
   }
 
   @override
@@ -58,28 +71,36 @@ class SwampConfigMapper extends ClassMapperBase<SwampConfig> {
 
 mixin SwampConfigMappable {
   String toJson() {
-    return SwampConfigMapper.ensureInitialized()
-        .encodeJson<SwampConfig>(this as SwampConfig);
+    return SwampConfigMapper.ensureInitialized().encodeJson<SwampConfig>(
+      this as SwampConfig,
+    );
   }
 
   Map<String, dynamic> toMap() {
-    return SwampConfigMapper.ensureInitialized()
-        .encodeMap<SwampConfig>(this as SwampConfig);
+    return SwampConfigMapper.ensureInitialized().encodeMap<SwampConfig>(
+      this as SwampConfig,
+    );
   }
 
   SwampConfigCopyWith<SwampConfig, SwampConfig, SwampConfig> get copyWith =>
       _SwampConfigCopyWithImpl<SwampConfig, SwampConfig>(
-          this as SwampConfig, $identity, $identity);
+        this as SwampConfig,
+        $identity,
+        $identity,
+      );
   @override
   String toString() {
-    return SwampConfigMapper.ensureInitialized()
-        .stringifyValue(this as SwampConfig);
+    return SwampConfigMapper.ensureInitialized().stringifyValue(
+      this as SwampConfig,
+    );
   }
 
   @override
   bool operator ==(Object other) {
-    return SwampConfigMapper.ensureInitialized()
-        .equalsValue(this as SwampConfig, other);
+    return SwampConfigMapper.ensureInitialized().equalsValue(
+      this as SwampConfig,
+      other,
+    );
   }
 
   @override
@@ -109,20 +130,22 @@ class _SwampConfigCopyWithImpl<$R, $Out>
   late final ClassMapperBase<SwampConfig> $mapper =
       SwampConfigMapper.ensureInitialized();
   @override
-  $R call({String? description, int? maxPlayers, bool? noDarkRooms}) =>
-      $apply(FieldCopyWithData({
-        if (description != null) #description: description,
-        if (maxPlayers != null) #maxPlayers: maxPlayers,
-        if (noDarkRooms != null) #noDarkRooms: noDarkRooms
-      }));
+  $R call({String? description, int? maxPlayers, bool? noDarkRooms}) => $apply(
+    FieldCopyWithData({
+      if (description != null) #description: description,
+      if (maxPlayers != null) #maxPlayers: maxPlayers,
+      if (noDarkRooms != null) #noDarkRooms: noDarkRooms,
+    }),
+  );
   @override
   SwampConfig $make(CopyWithData data) => SwampConfig(
-      description: data.get(#description, or: $value.description),
-      maxPlayers: data.get(#maxPlayers, or: $value.maxPlayers),
-      noDarkRooms: data.get(#noDarkRooms, or: $value.noDarkRooms));
+    description: data.get(#description, or: $value.description),
+    maxPlayers: data.get(#maxPlayers, or: $value.maxPlayers),
+    noDarkRooms: data.get(#noDarkRooms, or: $value.noDarkRooms),
+  );
 
   @override
   SwampConfigCopyWith<$R2, SwampConfig, $Out2> $chain<$R2, $Out2>(
-          Then<$Out2, $R2> t) =>
-      _SwampConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+    Then<$Out2, $R2> t,
+  ) => _SwampConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
