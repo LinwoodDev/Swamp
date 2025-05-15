@@ -6,9 +6,9 @@ These assets are licensed under the [CC-BY-SA-4.0](https://github.com/LinwoodDev
 
 ## Logo
 
-![Logo](/logo.svg)
+![Logo](/img/logo.svg)
 
-[SVG](/logo.svg) [PNG](/logo.png)
+[SVG](/img/logo.svg) [PNG](/img/logo.png)
 
 ## Colors
 

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="https://raw.githubusercontent.com/LinwoodDev/Swamp/develop/docs/public/img/logo.png" width="350px" />
+
 # Swamp
 
 > WIP: Universal Simple Web-Socket Application Messaging Proxy for Linwood Apps

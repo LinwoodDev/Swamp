@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_mappable/dart_mappable.dart';
 
 part 'config.mapper.dart';
@@ -42,4 +44,18 @@ final class SwampConfig with SwampConfigMappable {
   }
 
   int get flags => noDarkRooms ? 0x01 : 0x00;
+}
+
+final class ConfigManager {
+  SwampConfig _config;
+
+  SwampConfig get config => _config;
+
+  ConfigManager([this._config = const SwampConfig()]);
+
+  Future<void> load() async {
+    final file = File('swamp.json');
+    final data = await file.readAsString();
+    _config = SwampConfigMapper.fromJson(data);
+  }
 }

@@ -80,12 +80,14 @@ Uint8List generateRandomRoomId() {
 }
 
 final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
-  final SwampConfig config;
+  final ConfigManager configManager;
   final Set<SwampRoom> _rooms = {};
   final Map<Channel, SwampRoom> _joined = {};
   final Map<Channel, Uint8List> _application = {};
 
-  SwampRoomManager(this.config);
+  SwampConfig get config => configManager.config;
+
+  SwampRoomManager(this.configManager);
 
   SwampRoom? joinRoom(Uint8List roomId, Channel player) {
     final room = getRoom(roomId);

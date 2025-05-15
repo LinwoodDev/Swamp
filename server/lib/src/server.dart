@@ -6,8 +6,8 @@ import 'package:networker_socket/server.dart';
 import 'package:swamp/swamp.dart';
 
 class SwampServer extends NetworkerSocketServer {
-  final SwampConfig config;
-  late final SwampRoomManager _roomManager = SwampRoomManager(config);
+  final ConfigManager configManager;
+  late final SwampRoomManager _roomManager = SwampRoomManager(configManager);
   final NamedRpcClientNetworkerPipe<SwampCommand, SwampEvent> _rpcPipe =
       NamedRpcClientNetworkerPipe(config: RpcConfig(channelField: false));
   final Consoler _consoler = Consoler(
@@ -16,14 +16,16 @@ class SwampServer extends NetworkerSocketServer {
     ),
   );
 
+  SwampConfig get config => configManager.config;
+
   SwampServer(
     super.serverAddress,
     super.port, {
-    this.config = const SwampConfig(),
+    ConfigManager? configManager,
     bool withConsole = true,
     LogLevel? minLogLevel,
     super.securityContext,
-  }) {
+  }) : configManager = configManager ?? ConfigManager() {
     connect(_rpcPipe..connect(_roomManager));
 
     _initFunctions();

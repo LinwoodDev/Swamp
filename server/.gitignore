@@ -3,3 +3,4 @@
 .dart_tool/
 doc/
 /bin/swamp.exe
+swamp.json

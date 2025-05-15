@@ -20,7 +20,7 @@ export default defineConfig({
         "./src/styles/custom.css",
       ],
       logo: {
-        src: "./public/logo.svg",
+        src: "./public/img/logo.svg",
       },
       favicon: "./favicon.ico",
       social: [
