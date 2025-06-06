@@ -63,10 +63,9 @@ class SwampServer extends NetworkerSocketServer {
       })
       ..registerNamedFunction(SwampCommand.createRoom).read.listen((event) {
         final flags = RoomFlags(event.data.elementAtOrNull(0) ?? 0);
-        final maxPlayers =
-            event.data.length >= 3
-                ? event.data.sublist(1, 3).buffer.asByteData().getUint16(0)
-                : null;
+        final maxPlayers = event.data.length >= 3
+            ? event.data.sublist(1, 3).buffer.asByteData().getUint16(0)
+            : null;
         _roomManager.addRoom(
           event.channel,
           roomFlags: flags,

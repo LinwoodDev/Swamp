@@ -26,11 +26,10 @@ class RoomsProgram extends ConsoleProgram {
       print("Invalid page number");
       return;
     }
-    final rooms =
-        roomManager.rooms
-            .skip((page - 1) * kPageSize)
-            .take(kPageSize + 1)
-            .toList();
+    final rooms = roomManager.rooms
+        .skip((page - 1) * kPageSize)
+        .take(kPageSize + 1)
+        .toList();
     print("${rooms.length} room${rooms.length == 1 ? '' : 's'} (Page $page):");
     if (rooms.isEmpty) {
       print("No rooms found");

@@ -26,10 +26,9 @@ Future<void> main(List<String> args) async {
   try {
     final privateKey = await File('certs/server.key').readAsBytes();
     final certificate = await File('certs/server.crt').readAsBytes();
-    securityContext =
-        SecurityContext()
-          ..usePrivateKeyBytes(privateKey)
-          ..useCertificateChainBytes(certificate);
+    securityContext = SecurityContext()
+      ..usePrivateKeyBytes(privateKey)
+      ..useCertificateChainBytes(certificate);
   } on PathNotFoundException catch (_) {}
   final server = SwampServer(ip, port, securityContext: securityContext);
   server.log(welcomeMessage);

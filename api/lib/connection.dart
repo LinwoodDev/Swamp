@@ -69,8 +69,10 @@ class RawSwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     if (!address.hasScheme) {
       address = address.replace(scheme: 'wss');
     }
-    final channel =
-        _channel = WebSocketChannel.connect(address, protocols: ['swamp-0']);
+    final channel = _channel = WebSocketChannel.connect(
+      address,
+      protocols: ['swamp-0'],
+    );
     channel.stream.listen(
       (event) {
         if (event is String) {
@@ -192,8 +194,9 @@ class SwampConnection extends RawSwampConnection {
     RoomFlags flags = const RoomFlags(),
   }) {
     roomCodeDecoder ??= decodeRoomCode;
-    final roomId =
-        address.hasFragment ? roomCodeDecoder(address.fragment) : null;
+    final roomId = address.hasFragment
+        ? roomCodeDecoder(address.fragment)
+        : null;
     return SwampConnection(
       server: address.replace(fragment: ''),
       roomId: roomId,
