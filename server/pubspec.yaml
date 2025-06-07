@@ -5,7 +5,7 @@ publish_to: none
 # repository: https://github.com/my_org/my_repo
 
 environment:
-  sdk: ^3.8.0
+  sdk: ^3.8.1
 
 dependencies:
   swamp_api:
@@ -14,17 +14,17 @@ dependencies:
     git:
       url: https://github.com/LinwoodDev/dart_pkgs.git
       path: packages/networker/networker
-      ref: 2e0ab5b548cb8e2d64ca24e0d7b4a6cfcc6d57fe
+      ref: 4f221c5943ceb786eb7bd427eb71a8cc1346b9b8
   networker_crypto:
     git:
       url: https://github.com/LinwoodDev/dart_pkgs.git
       path: packages/networker/networker_crypto
-      ref: 1cc2988f680758fcb45c88b3905b0312d8c5a513
+      ref: ec6f31ba3eb0da17bdef6a8d66ef6caafcabd908
   networker_socket:
     git:
       url: https://github.com/LinwoodDev/dart_pkgs.git
       path: packages/networker/networker_socket
-      ref: 426b6af52aa7028264d0d725a89d7cd8102e5dda
+      ref: ec6f31ba3eb0da17bdef6a8d66ef6caafcabd908
   consoler:
     git:
       url: https://github.com/LinwoodDev/dart_pkgs.git
