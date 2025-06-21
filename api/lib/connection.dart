@@ -31,6 +31,7 @@ class RawSwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   final StreamController<void> _onOpen = StreamController<void>.broadcast(),
       _onClosed = StreamController<void>.broadcast();
   final Uri server;
+
   @override
   RpcConfig get config => RpcConfig(channelField: false);
 
@@ -124,6 +125,11 @@ class SwampConnection extends RawSwampConnection {
   final RawNetworkerPipe messagePipe;
   final String split;
   final RoomFlags flags;
+  KickReason? _kickReason;
+  Uint8List? _kickMessage;
+
+  KickReason? get kickReason => _kickReason;
+  Uint8List? get kickMessage => _kickMessage;
 
   @override
   bool get isServer => roomInfo?.currentId == kAuthorityChannel;
@@ -239,6 +245,8 @@ class SwampConnection extends RawSwampConnection {
   @override
   Future<void> init() async {
     await super.init();
+    _kickMessage = null;
+    _kickReason = null;
     return _sendRequest();
   }
 
@@ -274,7 +282,21 @@ class SwampConnection extends RawSwampConnection {
     registerNamedFunction(SwampEvent.welcome).read.listen((packet) {
       _onWelcome.add(null);
     });
-    registerNamedFunction(SwampEvent.kicked).read.listen((packet) => close());
+    registerNamedFunction(SwampEvent.kicked).read.listen((packet) {
+      try {
+        final data = packet.data;
+        _kickReason = KickReason.fromValue(data[0]);
+        if (data.length > 1) {
+          _kickMessage = data.sublist(1);
+        } else {
+          _kickMessage = null;
+        }
+      } catch (e) {
+        _kickReason = null;
+        _kickMessage = null;
+      }
+      close();
+    });
     registerNamedFunction(
       SwampEvent.roomJoinFailed,
     ).read.listen((packet) => close());
