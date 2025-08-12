@@ -30,7 +30,7 @@ jobs:
     runs-on: ${{ matrix.os.name }}
     steps:
       - name: ⬆️ Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install yq
         if: ${{ matrix.os.name == 'windows-2025' }}
         run: choco install yq
@@ -67,7 +67,7 @@ jobs:
     if: github.event_name != 'pull_request'
     steps:
       - name: ⬆️ Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set Docker tag
         id: docker_tag
         run: |
@@ -109,7 +109,7 @@ jobs:
       - build-server
     steps:
       - name: ⬆️ Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         env:
           CI_PAT: ${{ secrets.CI_PAT }}
         with:
