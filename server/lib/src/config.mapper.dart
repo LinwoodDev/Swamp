@@ -1,5 +1,6 @@
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// dart format off
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, unnecessary_cast, override_on_non_overriding_member
 // ignore_for_file: strict_raw_type, inference_failure_on_untyped_parameter
@@ -41,12 +42,19 @@ class SwampConfigMapper extends ClassMapperBase<SwampConfig> {
     opt: true,
     def: false,
   );
+  static int _$flags(SwampConfig v) => v.flags;
+  static const Field<SwampConfig, int> _f$flags = Field(
+    'flags',
+    _$flags,
+    mode: FieldMode.member,
+  );
 
   @override
   final MappableFields<SwampConfig> fields = const {
     #description: _f$description,
     #maxPlayers: _f$maxPlayers,
     #noDarkRooms: _f$noDarkRooms,
+    #flags: _f$flags,
   };
 
   static SwampConfig _instantiate(DecodingData data) {
@@ -149,3 +157,4 @@ class _SwampConfigCopyWithImpl<$R, $Out>
     Then<$Out2, $R2> t,
   ) => _SwampConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+

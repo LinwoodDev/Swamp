@@ -30,7 +30,7 @@ jobs:
     runs-on: ${{ matrix.os.name }}
     steps:
       - name: ⬆️ Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install yq
         if: ${{ matrix.os.name == 'windows-2025' }}
         run: choco install yq
@@ -67,7 +67,7 @@ jobs:
     if: github.event_name != 'pull_request'
     steps:
       - name: ⬆️ Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set Docker tag
         id: docker_tag
         run: |
@@ -109,7 +109,7 @@ jobs:
       - build-server
     steps:
       - name: ⬆️ Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         env:
           CI_PAT: ${{ secrets.CI_PAT }}
         with:
@@ -122,19 +122,19 @@ jobs:
           echo "SWAMP_VERSION=${SWAMP_VERSION}" >> $GITHUB_OUTPUT
           git config --global user.email "ci@linwood.dev"
           git config --global user.name "Linwood CI"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: server-build-linux-x86_64
           path: server-build-linux-x86_64/
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: server-build-linux-arm64
           path: server-build-linux-arm64/
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: server-build-windows-x86_64
           path: server-build-windows-x86_64/
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: server-build-macos
           path: server-build-macos/
