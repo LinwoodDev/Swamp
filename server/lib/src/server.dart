@@ -3,11 +3,13 @@ import 'dart:typed_data';
 import 'package:consoler/consoler.dart';
 import 'package:networker/networker.dart';
 import 'package:networker_socket/server.dart';
+import 'package:swamp/src/programs/config.dart';
+import 'package:swamp/src/programs/info.dart';
 import 'package:swamp/swamp.dart';
 
 class SwampServer extends NetworkerSocketServer {
   final ConfigManager configManager;
-  late final SwampRoomManager _roomManager = SwampRoomManager(configManager);
+  late final SwampRoomManager roomManager = SwampRoomManager(configManager);
   final NamedRpcClientNetworkerPipe<SwampCommand, SwampEvent> _rpcPipe =
       NamedRpcClientNetworkerPipe(config: RpcConfig(channelField: false));
   final Consoler _consoler = Consoler(
@@ -26,13 +28,15 @@ class SwampServer extends NetworkerSocketServer {
     LogLevel? minLogLevel,
     super.securityContext,
   }) : configManager = configManager ?? ConfigManager() {
-    connect(_rpcPipe..connect(_roomManager));
+    connect(_rpcPipe..connect(roomManager));
 
     _initFunctions();
     _consoler.registerPrograms({
       'stop': StopProgram(this),
-      'rooms': RoomsProgram(_roomManager),
-      'room': RoomProgram(_roomManager),
+      'rooms': RoomsProgram(roomManager),
+      'room': RoomProgram(roomManager),
+      'config': ConfigProgram(this),
+      'info': InfoProgram(this),
     });
     _consoler.minLogLevel = minLogLevel ?? _consoler.minLogLevel;
     if (withConsole) _consoler.run();
@@ -44,11 +48,11 @@ class SwampServer extends NetworkerSocketServer {
   void _initFunctions() {
     clientConnect.listen((event) {
       log('Client connected: ${event.$1}', LogLevel.info);
-      _roomManager.sendRoomInfo(event.$1);
+      roomManager.sendRoomInfo(event.$1);
     });
     clientDisconnect.listen((event) {
       log('Client disconnected: ${event.$1}', LogLevel.info);
-      _roomManager.leaveRoom(event.$1);
+      roomManager.leaveRoom(event.$1);
     });
     _rpcPipe
       ..registerNamedFunction(SwampCommand.message).read.listen((event) {
@@ -59,25 +63,25 @@ class SwampServer extends NetworkerSocketServer {
             .asByteData()
             .getUint16(0);
         final message = event.data.sublist(2);
-        _roomManager.sendMessageToRoom(sender, receiver, message);
+        roomManager.sendMessageToRoom(sender, receiver, message);
       })
       ..registerNamedFunction(SwampCommand.createRoom).read.listen((event) {
         final flags = RoomFlags(event.data.elementAtOrNull(0) ?? 0);
         final maxPlayers = event.data.length >= 3
             ? event.data.sublist(1, 3).buffer.asByteData().getUint16(0)
             : null;
-        _roomManager.addRoom(
+        roomManager.addRoom(
           event.channel,
           roomFlags: flags,
           maxPlayers: maxPlayers,
         );
         log(
-          'Room created: ${_roomManager.getChannelRoom(event.channel)}',
+          'Room created: ${roomManager.getChannelRoom(event.channel)}',
           LogLevel.info,
         );
       })
       ..registerNamedFunction(SwampCommand.joinRoom).read.listen((event) {
-        final room = _roomManager.joinRoom(event.data, event.channel);
+        final room = roomManager.joinRoom(event.data, event.channel);
         if (room == null) {
           log('Client ${event.channel} failed to join room', LogLevel.warning);
           return;
@@ -88,7 +92,7 @@ class SwampServer extends NetworkerSocketServer {
         );
       })
       ..registerNamedFunction(SwampCommand.leaveRoom).read.listen((event) {
-        _roomManager.leaveRoom(event.channel);
+        roomManager.leaveRoom(event.channel);
         log('Client ${event.channel} left room', LogLevel.info);
       })
       ..registerNamedFunction(SwampCommand.kickPlayer).read.listen((event) {
@@ -97,12 +101,12 @@ class SwampServer extends NetworkerSocketServer {
             .buffer
             .asByteData()
             .getUint16(0);
-        _roomManager.leaveRoom(player);
+        roomManager.leaveRoom(player);
         log('Client ${event.channel} kicked from room', LogLevel.info);
       })
       ..registerNamedFunction(SwampCommand.playerList).read.listen((event) {
         final players =
-            _roomManager.getChannelRoom(event.channel)?.channels ?? <Channel>[];
+            roomManager.getChannelRoom(event.channel)?.channels ?? <Channel>[];
         final builder = BytesBuilder();
         builder.addByte(players.length >> 8);
         builder.addByte(players.length & 0xFF);
@@ -118,7 +122,7 @@ class SwampServer extends NetworkerSocketServer {
         log('Player list sent to ${event.channel}', LogLevel.verbose);
       })
       ..registerNamedFunction(SwampCommand.setApplication).read.listen((event) {
-        _roomManager.setApplication(event.channel, event.data);
+        roomManager.setApplication(event.channel, event.data);
         log('Application set for ${event.channel}', LogLevel.verbose);
       });
   }

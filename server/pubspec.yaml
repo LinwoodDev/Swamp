@@ -1,11 +1,11 @@
 name: swamp
 description: Universal Simple Web-Socket Application Messaging Proxy for Linwood Apps
-version: 1.0.0
+version: 0.1.0
 publish_to: none
 # repository: https://github.com/my_org/my_repo
 
 environment:
-  sdk: ^3.8.1
+  sdk: ^3.9.0
 
 dependencies:
   swamp_api:
