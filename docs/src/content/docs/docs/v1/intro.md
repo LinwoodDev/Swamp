@@ -4,6 +4,11 @@ title: Introduction
 
 > Welcome to Swamp, the universal simple web-socket application messaging protocol
 
+:::note
+This documentation is work in progress and may contain errors or incomplete information.
+Please open an issue on [GitHub](https://github.com/LinwoodDev/Swamp/issues) if you find any problems or have suggestions.
+:::
+
 ## What is Swamp?
 
 Swamp is a simple, fast, and secure web-socket application messaging protocol. It is designed to be easy to use and implement, while also being flexible enough to support a wide range of applications. It uses a room based system to allow grouping of users and messages.
@@ -23,3 +28,5 @@ Simple usecases for Swamp could be a temporary chat room, a web minigame or a co
 
 Swamp can be either used as a simple binary to run on your server or as a library in your own project.
 The server is written in Dart and can be run on any platform that supports Dart. The library is also written in Dart and can be used in any Dart or Flutter project.
+
+Read more about how to [setup the server](/docs/v1/setup/) and how to [use the api](/docs/v1/api/).
