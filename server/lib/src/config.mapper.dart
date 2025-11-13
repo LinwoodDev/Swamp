@@ -42,19 +42,12 @@ class SwampConfigMapper extends ClassMapperBase<SwampConfig> {
     opt: true,
     def: false,
   );
-  static int _$flags(SwampConfig v) => v.flags;
-  static const Field<SwampConfig, int> _f$flags = Field(
-    'flags',
-    _$flags,
-    mode: FieldMode.member,
-  );
 
   @override
   final MappableFields<SwampConfig> fields = const {
     #description: _f$description,
     #maxPlayers: _f$maxPlayers,
     #noDarkRooms: _f$noDarkRooms,
-    #flags: _f$flags,
   };
 
   static SwampConfig _instantiate(DecodingData data) {
