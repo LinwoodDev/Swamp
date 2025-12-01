@@ -1,5 +1,5 @@
 # Use latest stable channel SDK.
-FROM dart:3.10.0 AS build
+FROM dart:3.10.2 AS build
 
 # Configure Git to avoid hardlink issues in Docker
 RUN git config --global core.autocrlf false && \
@@ -24,9 +24,8 @@ RUN dart pub get --offline
 RUN dart compile exe bin/swamp.dart -o bin/server
 
 # Build minimal serving image from AOT-compiled `/server`
-# and the pre-built AOT-runtime in the `/runtime/` directory of the base image.
-FROM scratch
-COPY --from=build /runtime/ /
+# Use debian:stable-slim for glibc compatibility as dart compile exe links dynamically
+FROM debian:stable-slim
 COPY --from=build /app/server/bin/server /app/bin/
 
 # Start server.

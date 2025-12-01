@@ -56,6 +56,10 @@ class SwampServer extends NetworkerSocketServer {
     });
     _rpcPipe
       ..registerNamedFunction(SwampCommand.message).read.listen((event) {
+        if (event.data.length < 2) {
+          log('Invalid message packet from ${event.channel}', LogLevel.warning);
+          return;
+        }
         final sender = event.channel;
         final receiver = event.data
             .sublist(0, 2)
@@ -96,6 +100,10 @@ class SwampServer extends NetworkerSocketServer {
         log('Client ${event.channel} left room', LogLevel.info);
       })
       ..registerNamedFunction(SwampCommand.kickPlayer).read.listen((event) {
+        if (event.data.length < 2) {
+          log('Invalid kick packet from ${event.channel}', LogLevel.warning);
+          return;
+        }
         final player = event.data
             .sublist(0, 2)
             .buffer
