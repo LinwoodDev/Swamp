@@ -190,10 +190,10 @@ packages:
     dependency: "direct dev"
     description:
       name: dart_mappable_builder
-      sha256: "50154ae053de29b81987604d4d04bb40818bce86574325699f43612eeb0c0b1c"
+      sha256: "0a9a4132f298b10c7870ab04f1f5778a08ecce14b9879c4243463716422815f4"
       url: "https://pub.dev"
     source: hosted
-    version: "4.6.1"
+    version: "4.6.3"
   dart_style:
     dependency: transitive
     description:
@@ -608,10 +608,10 @@ packages:
     dependency: transitive
     description:
       name: watcher
-      sha256: "592ab6e2892f67760543fb712ff0177f4ec76c031f02f5b4ff8d3fc5eb9fb61a"
+      sha256: f52385d4f73589977c80797e60fe51014f7f2b957b5e9a62c3f6ada439889249
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.4"
+    version: "1.2.0"
   web:
     dependency: transitive
     description:
@@ -653,4 +653,4 @@ packages:
     source: hosted
     version: "3.1.3"
 sdks:
-  dart: ">=3.9.2 <4.0.0"
+  dart: ">=3.10.4 <4.0.0"
