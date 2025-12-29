@@ -4,7 +4,7 @@
 
 | Version | Supported |     |
 | ------- | --------- | --- |
-|         |           |     |
+| 0.1.0   | ⚠️         |     |
 
 Currently there is no version released yet.
 Because of that, there is also no main branch.

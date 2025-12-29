@@ -61,18 +61,14 @@ class SwampServer extends NetworkerSocketServer {
           return;
         }
         final sender = event.channel;
-        final receiver = event.data
-            .sublist(0, 2)
-            .buffer
-            .asByteData()
-            .getUint16(0);
+        final receiver = ByteData.sublistView(event.data, 0, 2).getUint16(0);
         final message = event.data.sublist(2);
         roomManager.sendMessageToRoom(sender, receiver, message);
       })
       ..registerNamedFunction(SwampCommand.createRoom).read.listen((event) {
         final flags = RoomFlags(event.data.elementAtOrNull(0) ?? 0);
         final maxPlayers = event.data.length >= 3
-            ? event.data.sublist(1, 3).buffer.asByteData().getUint16(0)
+            ? ByteData.sublistView(event.data, 1, 3).getUint16(0)
             : null;
         roomManager.addRoom(
           event.channel,

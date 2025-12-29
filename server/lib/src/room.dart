@@ -61,7 +61,7 @@ final class SwampRoom {
     if (keys.length >= maxPlayers) {
       return kAnyChannel;
     }
-    for (var i = 2; i < 2 ^ 16; i++) {
+    for (var i = 2; i < (1 << 16); i++) {
       if (!keys.contains(i)) {
         return i;
       }
@@ -99,10 +99,10 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     if (application != null &&
         room.application != null &&
         encodeRoomCode(room.application!) != encodeRoomCode(application)) {
-      _sendJoinFailed(player, JoinFailedReason.roomFull);
+      _sendJoinFailed(player, JoinFailedReason.applicationMismatch);
       return null;
     }
-    if (room.players.length >= config.maxPlayers) {
+    if (room.maxPlayers != 0 && room.players.length >= room.maxPlayers) {
       _sendJoinFailed(player, JoinFailedReason.roomFull);
       return null;
     }
@@ -221,7 +221,7 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     final info = RoomInfo(
       currentId: player,
       flags: room.roomFlags.value,
-      maxPlayers: 0,
+      maxPlayers: room.maxPlayers,
       roomId: room.roomId,
     );
     sendMessage(
@@ -250,11 +250,12 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
       return true;
     }
     if (roomChannel == kAuthorityChannel) {
-      for (final player in room.players) {
+      final players = room._playerChannels.keys.toList();
+      for (final player in players) {
         _joined.remove(player);
         _sendKickMessage(player, KickReason.hostLeft);
       }
-      room.players.clear();
+      room._playerChannels.clear();
       _rooms.remove(room);
     }
     return true;
@@ -297,11 +298,11 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
   }
 
   void setApplication(Channel channel, Uint8List? data) {
-    if (data?.isEmpty ?? false) data = null;
-    if (data == null) {
+    final Uint8List? newData = (data?.isEmpty ?? false) ? null : data;
+    if (newData == null) {
       _application.remove(channel);
     } else {
-      _application[channel] = data;
+      _application[channel] = newData;
     }
   }
 
