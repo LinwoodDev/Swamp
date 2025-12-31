@@ -36,18 +36,6 @@ jobs:
           echo "body<<EOF" >> $GITHUB_OUTPUT
           echo "${{ github.event.release.body }}" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-      
-      - name: Update Changelog
-        run: |
-          TAG_NAME="${{ steps.release_info.outputs.tag_name }}"
-          RELEASE_BODY="${{ steps.release_info.outputs.body }}"
-          
-          # Add release notes to the CHANGELOG.md
-          sed -i "s|<!--ENTER CHANGELOG HERE-->|<!--ENTER CHANGELOG HERE-->\n\n## ${TAG_NAME}\n\n${RELEASE_BODY}\n|g" CHANGELOG.md
-          
-          git add CHANGELOG.md
-          git commit -m "Update CHANGELOG.md with ${TAG_NAME} release notes" || echo "No changes to commit"
-          git push origin HEAD:${GITHUB_REF#refs/heads/}
       - name: Update Changelog in develop
         run: |
           TAG_NAME="${{ steps.release_info.outputs.tag_name }}"
