@@ -12,6 +12,7 @@ on:
 
 jobs:
   update-changelog-and-tag:
+    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     env:
       TAG_NAME: ${{ github.event.release.tag_name }}
@@ -39,10 +40,12 @@ jobs:
       - name: Update Changelog in develop
         run: |
           TAG_NAME="${{ steps.release_info.outputs.tag_name }}"
+          TAG_NAME="${TAG_NAME#v}"
           RELEASE_BODY="${{ steps.release_info.outputs.body }}"
+          DATE=$(date +%Y-%m-%d)
           
           # Add release notes to the CHANGELOG.md
-          sed -i "s|<!--ENTER CHANGELOG HERE-->|<!--ENTER CHANGELOG HERE-->\n\n## ${TAG_NAME}\n\n${RELEASE_BODY}\n|g" CHANGELOG.md
+          sed -i "s|<!--ENTER CHANGELOG HERE-->|<!--ENTER CHANGELOG HERE-->\n\n## ${TAG_NAME} (${DATE})\n\n${RELEASE_BODY}\n|g" CHANGELOG.md
           
           git add CHANGELOG.md
           git commit -m "Update CHANGELOG.md with ${TAG_NAME} release notes" || echo "No changes to commit"
