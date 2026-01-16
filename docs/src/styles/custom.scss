@@ -1,33 +1,15 @@
-/* Background: Secondary color + chroma=0.02 */
+
+/* Background: #35EF53 with 0.1 chroma */
 /* Dark mode colors. */
 :root {
-	--sl-color-accent-low: #062d09;
 	--sl-color-accent: #00811b;
-	--sl-color-accent-high: #abd6ab;
-	--sl-color-white: #ffffff;
-	--sl-color-gray-1: #ebeef3;
-	--sl-color-gray-2: #bfc2c9;
-	--sl-color-gray-3: #878b98;
-	--sl-color-gray-4: #545864;
-	--sl-color-gray-5: #343843;
-	--sl-color-gray-6: #232631;
-	--sl-color-black: #16181d;
+  --sl-color-white: #ffffff;
   --sl-font-system: "Inter", sans-serif;
 }
 /* Light mode colors. */
-:root[data-theme='light'] {
-	--sl-color-accent-low: #c1e1c0;
+:root[data-theme="light"] {
 	--sl-color-accent: #007c1a;
-	--sl-color-accent-high: #003f08;
-	--sl-color-white: #16181d;
-	--sl-color-gray-1: #232631;
-	--sl-color-gray-2: #343843;
-	--sl-color-gray-3: #545864;
-	--sl-color-gray-4: #878b98;
-	--sl-color-gray-5: #bfc2c9;
-	--sl-color-gray-6: #ebeef3;
-	--sl-color-gray-7: #f5f6f9;
-	--sl-color-black: #ffffff;
+  --sl-color-white: #151915;
 }
 
 .inline-icon {
@@ -165,4 +147,11 @@ br {
   src: url("/fonts/Inter/Inter_18pt-Thin.ttf") format("truetype");
   font-weight: 100;
   font-style: normal;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
 }
