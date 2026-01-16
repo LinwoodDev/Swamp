@@ -6,10 +6,18 @@ import 'package:networker/networker.dart';
 import 'package:swamp/src/config.dart';
 import 'package:swamp_api/models.dart';
 
+/// Represents a room/lobby in the Swamp server.
 final class SwampRoom {
+  /// The unique identifier for the room.
   final Uint8List roomId;
+
+  /// Flags configuring the room's behavior.
   final RoomFlags roomFlags;
+
+  /// The maximum number of players allowed in the room.
   final Channel maxPlayers;
+
+  /// The application identifier associated with the room.
   final Uint8List? application;
   // Key is the player, value is the channel.
   final Map<Channel, Channel> _playerChannels = {};
@@ -21,6 +29,7 @@ final class SwampRoom {
     required this.maxPlayers,
   });
 
+  /// Creates a mock [SwampRoom] for testing or placeholder purposes.
   SwampRoom.mock(Uint8List roomId)
     : this._(roomId, maxPlayers: 0, application: null);
 
@@ -30,6 +39,7 @@ final class SwampRoom {
   @override
   int get hashCode => toString().hashCode;
 
+  /// Checks if the room has no players.
   bool get isEmpty => _playerChannels.isEmpty;
 
   @override
@@ -40,13 +50,19 @@ final class SwampRoom {
     return false;
   }
 
+  /// Gets the channel ID for a player ID if present in the room.
   Channel? getChannel(Channel player) => _playerChannels[player];
 
+  /// The set of player IDs currently in the room.
   Set<Channel> get players => _playerChannels.keys.toSet();
+
+  /// The set of channel IDs currently in the room.
   Set<Channel> get channels => _playerChannels.values.toSet();
 
+  /// The player ID of the room's owner (host).
   Channel get owner => getPlayer(kAuthorityChannel) ?? kAnyChannel;
 
+  /// Gets the player ID associated with a channel ID.
   Channel? getPlayer(Channel channel) {
     for (final entry in _playerChannels.entries) {
       if (entry.value == channel) {
@@ -70,25 +86,34 @@ final class SwampRoom {
   }
 }
 
+/// The length of a room ID in bytes.
 const kRoomIdLength = 8;
 final random = Random.secure();
 
+/// Generates a cryptographically secure random room ID.
 Uint8List generateRandomRoomId() {
   return Uint8List.fromList(
     List.generate(kRoomIdLength, (_) => random.nextInt(256)),
   );
 }
 
+/// Manages the lifecycle and operations of rooms on the server.
 final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
+  /// The server configuration manager.
   final ConfigManager configManager;
   final Set<SwampRoom> _rooms = {};
   final Map<Channel, SwampRoom> _joined = {};
   final Map<Channel, Uint8List> _application = {};
 
+  /// The current server configuration.
   SwampConfig get config => configManager.config;
 
   SwampRoomManager(this.configManager);
 
+  /// Attempts to add a player to a room.
+  ///
+  /// Returns the [SwampRoom] if successful, or `null` if the room wasn't found,
+  /// is full, or the application ID doesn't match.
   SwampRoom? joinRoom(Uint8List roomId, Channel player) {
     final room = getRoom(roomId);
     if (room == null) {

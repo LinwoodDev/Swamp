@@ -31,6 +31,7 @@ Future<void> main(List<String> args) async {
       ..useCertificateChainBytes(certificate);
   } on PathNotFoundException catch (_) {}
   final server = SwampServer(ip, port, securityContext: securityContext);
+  await server.configManager.load();
   server.log(welcomeMessage);
   if (securityContext != null) {
     server.log('Certificates found, using secure connection', LogLevel.info);

@@ -101,26 +101,17 @@ If you create a room but it fails.
 
 ##### Reasons
 
-| Reason | Description        |
-| ------ | ------------------ |
-| 0x00   | Room limit reached |
-| 0x01   | In room already    |
-| 0x02   | Flags unsupported  |
-| 0xFF   | Unknown error      |
-
-##### Types
-
-| Type | Description             |
-| ---- | ----------------------- |
-| 0x00 | Joined websocket server |
-| 0x01 | Kicked from room        |
-| 0x02 | Room does not exist     |
-| 0x03 | Room is full            |
-| 0x04 | Room creation           |
+| Reason | Description          |
+| ------ | -------------------- |
+| 0x00   | Room limit reached   |
+| 0x01   | In room already      |
+| 0x02   | Flags unsupported    |
+| 0xFF   | Unknown error        |
 
 #### Player Joined
 
 *Dark Room Event*
+Notification that a player has joined the room.
 
 |      |                     |
 | ---- | ------------------- |
@@ -129,14 +120,16 @@ If you create a room but it fails.
 #### Player Left
 
 *Dark Room Event*
+Notification that a player has left the room.
 
 |      |                     |
 | ---- | ------------------- |
 | 0x07 | Player ID (2 Bytes) |
 
-#### Connected Players
+#### Player List
 
 *Dark Room Event (toggleable), but returns empty error if not permitted*
+List of players currently in the room.
 
 |      |                  |                     | ... |
 | ---- | ---------------- | ------------------- | --- |
@@ -193,20 +186,14 @@ If Max Players is not set or set to `0`, the server will use the default value.
 #### Set Application
 
 Allows you to restrict the supported rooms.
+This is useful if you want to prevent users from joining rooms created by other applications (e.g. different games).
+When set, you can only join rooms created by users with the same application identifier.
 
-You can use:
+|      |                     |
+| ---- | ------------------- |
+| 0x06 | Application ID (Bytes) |
 
-|      |                   |                      |
-| ---- | ----------------- | -------------------- |
-| 0x06 | Version (4 Bytes) | Application (String) |
-
-to set the application or:
-
-|      |
-| ---- |
-| 0x07 |
-
-to remove the application restriction.
+Send an empty byte array to remove the application restriction.
 
 ## Room Flags
 

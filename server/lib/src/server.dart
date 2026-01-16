@@ -7,9 +7,17 @@ import 'package:swamp/src/programs/config.dart';
 import 'package:swamp/src/programs/info.dart';
 import 'package:swamp/swamp.dart';
 
+/// The main Swamp server class.
+///
+/// This class handles client connections, manages rooms, and processes RPC commands.
+/// It extends [NetworkerSocketServer] to provide TCP/socket server functionality.
 class SwampServer extends NetworkerSocketServer {
+  /// The configuration manager for the server.
   final ConfigManager configManager;
+
+  /// The room manager responsible for handling room logic.
   late final SwampRoomManager roomManager = SwampRoomManager(configManager);
+
   final NamedRpcClientNetworkerPipe<SwampCommand, SwampEvent> _rpcPipe =
       NamedRpcClientNetworkerPipe(config: RpcConfig(channelField: false));
   final Consoler _consoler = Consoler(
@@ -18,8 +26,16 @@ class SwampServer extends NetworkerSocketServer {
     ),
   );
 
+  /// The current server configuration.
   SwampConfig get config => configManager.config;
 
+  /// Creates a new [SwampServer].
+  ///
+  /// [serverAddress] and [port] define where the server listens.
+  /// [configManager] can be provided to use a custom configuration manager.
+  /// [withConsole] determines if the server should run an interactive console.
+  /// [minLogLevel] sets the minimum log level for the console.
+  /// [securityContext] allows configuring SSL/TLS.
   SwampServer(
     super.serverAddress,
     super.port, {
@@ -42,6 +58,7 @@ class SwampServer extends NetworkerSocketServer {
     if (withConsole) _consoler.run();
   }
 
+  /// Logs a message to the console.
   void log(Object? message, [LogLevel? level]) =>
       _consoler.print(message, level: level);
 
