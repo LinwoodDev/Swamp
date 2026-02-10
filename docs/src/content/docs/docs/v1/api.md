@@ -11,7 +11,7 @@ You can only use the default room configuration currently, so dark room events g
 
 :::
 
-## `GET /api/v0/info`
+## `GET /info`
 
 Returns information about the server like the name but no sensitive information.
 
@@ -21,13 +21,32 @@ Returns information about the server like the name but no sensitive information.
 {
   "description": "A simple server",
   "application": "linwood-swamp",
-  "max_players": 10
+  "max_players": 10,
+  "protocols": [0]
 }
 ```
 
-## Websocket: `GET /api/v0/ws`
+The `protocols` field lists the protocol versions the server supports (e.g. `[0]`).
+
+## Websocket: `GET`
 
 Connect to the websocket to receive real-time updates.
+
+### Protocol Version Negotiation
+
+The client **must** specify its protocol version using the `Sec-WebSocket-Protocol` header during the upgrade handshake.
+The subprotocol format is `swamp-<version>` (e.g. `swamp-0`).
+
+If the server does not support the requested version, it responds with HTTP `400 Bad Request` and a JSON body:
+
+```json
+{
+  "error": "unsupported_protocol",
+  "supported": ["0"]
+}
+```
+
+Clients should fetch `/info` first to discover supported protocol versions before connecting.
 
 ### Available Events
 

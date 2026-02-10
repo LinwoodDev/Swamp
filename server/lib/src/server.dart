@@ -1,5 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
 import 'package:consoler/consoler.dart';
 import 'package:networker/networker.dart';
 import 'package:networker_socket/server.dart';
@@ -26,6 +29,11 @@ class SwampServer extends NetworkerSocketServer {
     ),
   );
 
+  final RateLimiterPipe<Uint8List> _spamLimiter = RateLimiterPipe(
+    maxRequests: 200,
+    duration: Duration(seconds: 10),
+  );
+
   /// The current server configuration.
   SwampConfig get config => configManager.config;
 
@@ -44,7 +52,8 @@ class SwampServer extends NetworkerSocketServer {
     LogLevel? minLogLevel,
     super.securityContext,
   }) : configManager = configManager ?? ConfigManager() {
-    connect(_rpcPipe..connect(roomManager));
+    connect(_spamLimiter);
+    _spamLimiter.connect(_rpcPipe..connect(roomManager));
 
     _initFunctions();
     _consoler.registerPrograms({
@@ -56,6 +65,72 @@ class SwampServer extends NetworkerSocketServer {
     });
     _consoler.minLogLevel = minLogLevel ?? _consoler.minLogLevel;
     if (withConsole) _consoler.run();
+  }
+
+  @override
+  Future<void> handleRequest(HttpRequest request) async {
+    // On /info, we show server info
+    if (request.uri.path == '/info') {
+      showPublicInfo(this, request);
+      return;
+    }
+    // Validate the Swamp protocol version on WebSocket upgrade requests.
+    final protocols = request.headers['Sec-WebSocket-Protocol'];
+    if (protocols != null && protocols.isNotEmpty) {
+      final requested = protocols
+          .expand((h) => h.split(','))
+          .map((p) => p.trim())
+          .toList();
+      final match = requested.firstWhereOrNull((p) {
+        final v = parseSwampSubprotocol(p);
+        return v != null && kSwampSupportedProtocols.contains(v);
+      });
+      if (match == null) {
+        log(
+          'Client requested unsupported protocol(s): $requested',
+          LogLevel.warning,
+        );
+        request.response.statusCode = HttpStatus.badRequest;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          jsonEncode({
+            'error': 'unsupported_protocol',
+            'supported': kSwampSupportedProtocols
+                .map((v) => swampSubprotocol(v))
+                .toList(),
+          }),
+        );
+        request.response.close();
+        return;
+      }
+    }
+    return super.handleRequest(request);
+  }
+
+  @override
+  Future<void> handleWebSocketUpgrade(HttpRequest request) async {
+    // Select the best matching Swamp subprotocol during the WS handshake.
+    request.response.statusCode = HttpStatus.switchingProtocols;
+    final socket = await WebSocketTransformer.upgrade(
+      request,
+      protocolSelector: (requestedProtocols) {
+        return requestedProtocols.firstWhereOrNull((p) {
+          final v = parseSwampSubprotocol(p);
+          return v != null && kSwampSupportedProtocols.contains(v);
+        });
+      },
+    );
+    final info = request.connectionInfo;
+    final connectionInfo = NetworkerSocketInfo(
+      Uri(host: info?.remoteAddress.address, port: info?.remotePort),
+      socket,
+    );
+    final id = addClientConnection(connectionInfo);
+    if (id == kAnyChannel) {
+      socket.close();
+      return;
+    }
+    handleWebSocketConnection(id, connectionInfo, socket);
   }
 
   /// Logs a message to the console.
@@ -151,6 +226,11 @@ class SwampServer extends NetworkerSocketServer {
   @override
   Future<void> close() async {
     _consoler.dispose();
+    // Pre-close the HTTP server so the stream listener's onDone callback
+    // fires before super.close() closes the broadcast stream controllers.
+    // This avoids "Cannot add new events after calling close".
+    await server?.close();
+    await Future.delayed(Duration.zero);
     return super.close();
   }
 }

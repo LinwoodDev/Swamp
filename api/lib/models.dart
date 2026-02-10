@@ -5,6 +5,35 @@ import 'dart:typed_data';
 
 import 'package:networker/networker.dart';
 
+/// The current Swamp protocol version.
+///
+/// Increment this when making breaking changes to the wire protocol.
+const kSwampProtocolVersion = 1;
+
+/// All protocol versions the library understands.
+///
+/// The server advertises these via `/info` and accepts clients
+/// that connect with any of these versions.
+const kSwampSupportedProtocols = [kSwampProtocolVersion];
+
+/// Prefix used to build WebSocket subprotocol identifiers.
+///
+/// A full subprotocol string looks like `swamp-1`.
+const kSwampProtocolPrefix = 'swamp-';
+
+/// Builds the WebSocket subprotocol string for a given [version].
+///
+/// Defaults to [kSwampProtocolVersion].
+String swampSubprotocol([int version = kSwampProtocolVersion]) =>
+    '$kSwampProtocolPrefix$version';
+
+/// Parses a WebSocket subprotocol string (e.g. `swamp-1`) and returns
+/// the protocol version number, or `null` if the format is invalid.
+int? parseSwampSubprotocol(String subprotocol) {
+  if (!subprotocol.startsWith(kSwampProtocolPrefix)) return null;
+  return int.tryParse(subprotocol.substring(kSwampProtocolPrefix.length));
+}
+
 /// Encodes a room code (byte array) into a string representation.
 ///
 /// This uses Base64 encoding.

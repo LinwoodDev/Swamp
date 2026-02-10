@@ -16,7 +16,7 @@ final class SwampConfig with SwampConfigMappable {
   /// Environment variable for the maximum number of players.
   static const maxPlayersEnvironment = 'SWAMP_MAX_PLAYERS';
 
-  /// The maximum number of players allowed on the server.
+  /// The maximum number of players allowed in a room.
   final int maxPlayers;
 
   /// Environment variable to disable dark rooms.
@@ -27,7 +27,7 @@ final class SwampConfig with SwampConfigMappable {
 
   const SwampConfig({
     this.description = "",
-    this.maxPlayers = 256,
+    this.maxPlayers = 1024,
     this.noDarkRooms = false,
   });
 
@@ -65,9 +65,9 @@ final class SwampConfig with SwampConfigMappable {
       if (maxPlayersEnv != null && maxPlayersEnv >= 0)
         'maxPlayers': maxPlayersEnv,
       if (noDarkRoomsEnv) 'noDarkRooms': true,
-      if (noDarkRooms != null) 'noDarkRooms': noDarkRooms,
-      if (maxPlayers != null) 'maxPlayers': maxPlayers,
-      if (description != null) 'description': description,
+      'noDarkRooms': ?noDarkRooms,
+      'maxPlayers': ?maxPlayers,
+      'description': ?description,
     });
   }
 

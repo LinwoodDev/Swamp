@@ -43,10 +43,16 @@ class RawSwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
 
   WebSocketChannel? _channel;
 
+  /// The protocol version this client will use when connecting.
+  final int protocolVersion;
+
   @override
   bool get isServer => false;
 
-  RawSwampConnection({required this.server});
+  RawSwampConnection({
+    required this.server,
+    this.protocolVersion = kSwampProtocolVersion,
+  });
 
   @override
   FutureOr<void> close() {
@@ -72,7 +78,7 @@ class RawSwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     }
     final channel = _channel = WebSocketChannel.connect(
       address,
-      protocols: ['swamp-0'],
+      protocols: [swampSubprotocol(protocolVersion)],
     );
     channel.stream.listen(
       (event) {
@@ -172,6 +178,7 @@ class SwampConnection extends RawSwampConnection {
 
   SwampConnection({
     required super.server,
+    super.protocolVersion,
     this.roomId,
     this.roomCodeEncoder = encodeRoomCode,
     this.roomCodeDecoder = decodeRoomCode,
@@ -198,6 +205,7 @@ class SwampConnection extends RawSwampConnection {
     String Function(Uint8List)? roomCodeEncoder,
     Uint8List Function(String)? roomCodeDecoder,
     RoomFlags flags = const RoomFlags(),
+    int protocolVersion = kSwampProtocolVersion,
   }) {
     roomCodeDecoder ??= decodeRoomCode;
     final roomId = address.hasFragment
@@ -210,6 +218,7 @@ class SwampConnection extends RawSwampConnection {
       roomCodeDecoder: roomCodeDecoder,
       split: split,
       flags: flags,
+      protocolVersion: protocolVersion,
     );
   }
   static Future<SwampConnection> buildSecure(
@@ -219,6 +228,7 @@ class SwampConnection extends RawSwampConnection {
     Uint8List Function(String) roomCodeDecoder = decodeRoomCode,
     String split = kDefaultSwampSplit,
     RoomFlags flags = const RoomFlags(),
+    int protocolVersion = kSwampProtocolVersion,
   }) async {
     var roomId = address.hasFragment ? address.fragment : null;
     SecretKey key;
@@ -238,6 +248,7 @@ class SwampConnection extends RawSwampConnection {
       e2eePipe: e2ee,
       flags: flags,
       split: split,
+      protocolVersion: protocolVersion,
     );
     return connection;
   }

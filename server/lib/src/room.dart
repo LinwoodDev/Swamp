@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -21,6 +20,8 @@ final class SwampRoom {
   final Uint8List? application;
   // Key is the player, value is the channel.
   final Map<Channel, Channel> _playerChannels = {};
+  // Key is the channel, value is the player.
+  final Map<Channel, Channel> _channelToPlayer = {};
 
   SwampRoom._(
     this.roomId, {
@@ -57,32 +58,41 @@ final class SwampRoom {
   Set<Channel> get players => _playerChannels.keys.toSet();
 
   /// The set of channel IDs currently in the room.
-  Set<Channel> get channels => _playerChannels.values.toSet();
+  Set<Channel> get channels => _channelToPlayer.keys.toSet();
 
   /// The player ID of the room's owner (host).
   Channel get owner => getPlayer(kAuthorityChannel) ?? kAnyChannel;
 
   /// Gets the player ID associated with a channel ID.
-  Channel? getPlayer(Channel channel) {
-    for (final entry in _playerChannels.entries) {
-      if (entry.value == channel) {
-        return entry.key;
-      }
-    }
-    return null;
-  }
+  Channel? getPlayer(Channel channel) => _channelToPlayer[channel];
 
   Channel _findAvailableChannel() {
-    final keys = _playerChannels.values.toList();
-    if (keys.length >= maxPlayers) {
+    if (_playerChannels.length >= maxPlayers) {
       return kAnyChannel;
     }
     for (var i = 2; i < (1 << 16); i++) {
-      if (!keys.contains(i)) {
+      if (!_channelToPlayer.containsKey(i)) {
         return i;
       }
     }
     return kAnyChannel;
+  }
+
+  void _addPlayer(Channel player, Channel channel) {
+    _playerChannels[player] = channel;
+    _channelToPlayer[channel] = player;
+  }
+
+  void _removePlayer(Channel player) {
+    final channel = _playerChannels.remove(player);
+    if (channel != null) {
+      _channelToPlayer.remove(channel);
+    }
+  }
+
+  void _clear() {
+    _playerChannels.clear();
+    _channelToPlayer.clear();
   }
 }
 
@@ -104,6 +114,10 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
   final Set<SwampRoom> _rooms = {};
   final Map<Channel, SwampRoom> _joined = {};
   final Map<Channel, Uint8List> _application = {};
+  int _playerCount = 0;
+
+  /// The total number of players across all rooms.
+  int get playerCount => _playerCount;
 
   /// The current server configuration.
   SwampConfig get config => configManager.config;
@@ -137,7 +151,8 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
       return null;
     }
     _joined[player] = room;
-    room._playerChannels[player] = id;
+    room._addPlayer(player, id);
+    _playerCount++;
     sendRoomInfo(player);
     _sendPacketToRoom(
       room,
@@ -178,13 +193,22 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     );
     _rooms.add(room);
     _joined[owner] = room;
-    room._playerChannels[owner] = kAuthorityChannel;
+    room._addPlayer(owner, kAuthorityChannel);
+    _playerCount++;
     sendRoomInfo(owner);
     return room;
   }
 
-  FutureOr<void> removeRoom(Uint8List roomId) =>
-      _rooms.remove(SwampRoom.mock(roomId));
+  void removeRoom(Uint8List roomId) {
+    final room = getRoom(roomId);
+    if (room == null) return;
+    for (final player in room.players) {
+      _joined.remove(player);
+    }
+    _playerCount -= room.players.length;
+    room._clear();
+    _rooms.remove(room);
+  }
 
   SwampRoom? getRoom(Uint8List roomId) => _rooms.lookup(SwampRoom.mock(roomId));
 
@@ -262,7 +286,8 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     if (currentId != null && room.owner != currentId) return false;
     final roomChannel = room.getChannel(channel);
     if (roomChannel == null) return false;
-    room._playerChannels.remove(channel);
+    room._removePlayer(channel);
+    _playerCount--;
     _sendPacketToRoom(
       room,
       RpcNetworkerPacket.named(
@@ -275,12 +300,13 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
       return true;
     }
     if (roomChannel == kAuthorityChannel) {
-      final players = room._playerChannels.keys.toList();
+      final players = room.players.toList();
+      _playerCount -= players.length;
       for (final player in players) {
         _joined.remove(player);
         _sendKickMessage(player, KickReason.hostLeft);
       }
-      room._playerChannels.clear();
+      room._clear();
       _rooms.remove(room);
     }
     return true;
@@ -294,7 +320,7 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
   ]) {
     List<Channel> receivers;
     if (receiver == kAnyChannel) {
-      receivers = room._playerChannels.keys.where((c) => c != sender).toList();
+      receivers = room.players.where((c) => c != sender).toList();
     } else {
       final channel = room.getPlayer(receiver);
       if (channel == null) return;
