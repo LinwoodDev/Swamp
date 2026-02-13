@@ -15,8 +15,8 @@
 </div>
 
 <p align="center">
-    <a href="http://swamp.linwood.dev"><b>Website</b></a> •
-    <a href="http://swamp.linwood.dev/downloads"><b>Download</b></a> •
+    <a href="https://swamp.linwood.dev"><b>Website</b></a> •
+    <a href="https://swamp.linwood.dev/downloads"><b>Download</b></a> •
     <a href="https://linwood.dev/matrix"><b>Matrix</b></a> •
     <a href="https://go.linwood.dev/discord"><b>Discord</b></a> •
     <a href="https://floss.social/@linwood"><b>Mastodon</b></a> •
@@ -34,7 +34,7 @@ Read more in the [documentation](https://swamp.linwood.dev/docs/v1/intro).
 
 ## Official Apps
 
-- *(currently not released)* [Linwood Setonix](https://setonix.linwood.dev) to host your own card game server
+- [Linwood Setonix](https://setonix.linwood.dev) to host your own card game server
 - [Linwood Butterfly](https://butterfly.linwood.dev) to collaborate with others on a shared note taking document
 
 *but you can just implement the protocol in your own app!*
