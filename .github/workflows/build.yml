@@ -58,7 +58,7 @@ jobs:
           mkdir -p server-build
           mv bin/swamp.exe server-build/
       - name: Archive
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: server-build-${{ matrix.os.label }}
           path: server/server-build
