@@ -122,19 +122,19 @@ jobs:
           echo "SWAMP_VERSION=${SWAMP_VERSION}" >> $GITHUB_OUTPUT
           git config --global user.email "ci@linwood.dev"
           git config --global user.name "Linwood CI"
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: server-build-linux-x86_64
           path: server-build-linux-x86_64/
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: server-build-linux-arm64
           path: server-build-linux-arm64/
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: server-build-windows-x86_64
           path: server-build-windows-x86_64/
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: server-build-macos
           path: server-build-macos/
