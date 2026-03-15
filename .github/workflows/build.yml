@@ -58,7 +58,7 @@ jobs:
           mkdir -p server-build
           mv bin/swamp.exe server-build/
       - name: Archive
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: server-build-${{ matrix.os.label }}
           path: server/server-build
@@ -83,16 +83,16 @@ jobs:
       - name: Log Docker tag
         run: echo "Docker tag is ${{ env.tag }}"
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - name: Build and push Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         if: ${{ env.tag != 'unknown' }}
         with:
           context: .
@@ -122,19 +122,19 @@ jobs:
           echo "SWAMP_VERSION=${SWAMP_VERSION}" >> $GITHUB_OUTPUT
           git config --global user.email "ci@linwood.dev"
           git config --global user.name "Linwood CI"
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: server-build-linux-x86_64
           path: server-build-linux-x86_64/
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: server-build-linux-arm64
           path: server-build-linux-arm64/
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: server-build-windows-x86_64
           path: server-build-windows-x86_64/
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: server-build-macos
           path: server-build-macos/
