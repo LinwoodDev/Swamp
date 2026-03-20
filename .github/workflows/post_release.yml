@@ -44,8 +44,11 @@ jobs:
           RELEASE_BODY="${{ steps.release_info.outputs.body }}"
           DATE=$(date +%Y-%m-%d)
           
+          # Escape newlines for sed
+          ESCAPED_BODY="${RELEASE_BODY//$'\n'/\\n}"
+          
           # Add release notes to the CHANGELOG.md
-          sed -i "s|<!--ENTER CHANGELOG HERE-->|<!--ENTER CHANGELOG HERE-->\n\n## ${TAG_NAME} (${DATE})\n\n${RELEASE_BODY}\n|g" CHANGELOG.md
+          sed -i "s|<!--ENTER CHANGELOG HERE-->|<!--ENTER CHANGELOG HERE-->\n\n## ${TAG_NAME} (${DATE})\n\n${ESCAPED_BODY}\n|g" CHANGELOG.md
           
           git add CHANGELOG.md
           git commit -m "Update CHANGELOG.md with ${TAG_NAME} release notes" || echo "No changes to commit"
