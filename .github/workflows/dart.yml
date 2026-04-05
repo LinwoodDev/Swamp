@@ -15,7 +15,16 @@ jobs:
     steps:
       - name: ⬆️ Checkout
         uses: actions/checkout@v6
+      - name: Extract Dart SDK version from pubspec.yaml
+        id: dart_version
+        shell: bash
+        run: |
+          sdk_version=$(yq e '.environment.sdk' ../server/pubspec.yaml)
+          sdk_version="${sdk_version#^}"  # Removes leading '^' if present
+          echo "DART_SDK_VERSION=$sdk_version" >> $GITHUB_ENV
       - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
       - name: Print Dart SDK version
         run: |
           dart --version
