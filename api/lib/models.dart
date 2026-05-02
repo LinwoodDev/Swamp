@@ -173,6 +173,9 @@ final class RoomInfo {
 
   /// Creates a [RoomInfo] instance from a byte array.
   factory RoomInfo.fromBytes(Uint8List data) {
+    if (data.length < 5) {
+      throw FormatException('Room info packets must contain at least 5 bytes');
+    }
     return RoomInfo(
       flags: data[0],
       maxPlayers: data[1] << 8 | data[2],
@@ -223,11 +226,12 @@ enum JoinFailedReason {
 enum CreationFailedReason {
   limitReached,
   inRoom,
-  unknown,
-  unsupportedFlags;
+  unsupportedFlags,
+  unknown;
 
   int get value => this == unknown ? 0xFF : index;
 
-  static CreationFailedReason fromValue(int value) =>
-      CreationFailedReason.values.elementAtOrNull(value) ?? unknown;
+  static CreationFailedReason fromValue(int value) => CreationFailedReason
+      .values
+      .firstWhere((reason) => reason.value == value, orElse: () => unknown);
 }

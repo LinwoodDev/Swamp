@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
 import 'package:networker/networker.dart';
 import 'package:swamp/src/config.dart';
 import 'package:swamp_api/models.dart';
@@ -115,6 +116,7 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
   final Map<Channel, SwampRoom> _joined = {};
   final Map<Channel, Uint8List> _application = {};
   int _playerCount = 0;
+  static const _listEquality = ListEquality<int>();
 
   /// The total number of players across all rooms.
   int get playerCount => _playerCount;
@@ -137,7 +139,7 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     final application = _application[player];
     if (application != null &&
         room.application != null &&
-        encodeRoomCode(room.application!) != encodeRoomCode(application)) {
+        !_listEquality.equals(room.application!, application)) {
       _sendJoinFailed(player, JoinFailedReason.applicationMismatch);
       return null;
     }
@@ -179,10 +181,12 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
       roomId = generateRandomRoomId();
     }
     if (roomFlags.isDarkRoom && config.noDarkRooms) {
-      _sendCreationFailed(owner, CreationFailedReason.unknown);
+      _sendCreationFailed(owner, CreationFailedReason.unsupportedFlags);
       return null;
     }
-    if (maxPlayers == null || maxPlayers > config.maxPlayers) {
+    if (maxPlayers == null ||
+        maxPlayers == 0 ||
+        maxPlayers > config.maxPlayers) {
       maxPlayers = config.maxPlayers;
     }
     room = SwampRoom._(
@@ -220,7 +224,6 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     String message = '',
   ]) {
     final builder = BytesBuilder();
-    builder.addByte(0x03);
     builder.addByte(reason.value);
     builder.add(Uint8List.fromList(message.codeUnits));
     sendMessage(
@@ -280,12 +283,16 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
   }
 
   bool leaveRoom(Channel channel, {Channel? currentId, Uint8List? roomId}) {
-    if (roomId != null && _joined[channel]?.roomId != roomId) return false;
-    final room = _joined.remove(channel);
+    if (roomId != null &&
+        !_listEquality.equals(_joined[channel]?.roomId, roomId)) {
+      return false;
+    }
+    final room = _joined[channel];
     if (room == null) return false;
     if (currentId != null && room.owner != currentId) return false;
     final roomChannel = room.getChannel(channel);
     if (roomChannel == null) return false;
+    _joined.remove(channel);
     room._removePlayer(channel);
     _playerCount--;
     _sendPacketToRoom(
@@ -309,6 +316,33 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
       room._clear();
       _rooms.remove(room);
     }
+    return true;
+  }
+
+  bool kickPlayer(
+    Channel requester,
+    Channel targetPlayer, {
+    String message = '',
+  }) {
+    final room = getChannelRoom(requester);
+    if (room == null || room.getChannel(requester) != kAuthorityChannel) {
+      return false;
+    }
+    if (targetPlayer == kAuthorityChannel) return false;
+    final targetChannel = room.getPlayer(targetPlayer);
+    if (targetChannel == null) return false;
+
+    _joined.remove(targetChannel);
+    room._removePlayer(targetChannel);
+    _playerCount--;
+    _sendKickMessage(targetChannel, KickReason.kicked, message);
+    _sendPacketToRoom(
+      room,
+      RpcNetworkerPacket.named(
+        name: SwampEvent.playerLeft,
+        data: Uint8List.fromList([targetPlayer >> 8, targetPlayer & 0xFF]),
+      ),
+    );
     return true;
   }
 

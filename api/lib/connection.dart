@@ -234,6 +234,11 @@ class SwampConnection extends RawSwampConnection {
     SecretKey key;
     if (roomId != null) {
       var splitted = roomId.split(split);
+      if (splitted.length != 2 || splitted.any((part) => part.isEmpty)) {
+        throw FormatException(
+          'Secure Swamp addresses must include a room id and key',
+        );
+      }
       roomId = splitted[0];
       key = await cipher.newSecretKeyFromBytes(roomCodeDecoder(splitted[1]));
     } else {
@@ -276,19 +281,7 @@ class SwampConnection extends RawSwampConnection {
 
   void _initFunctions() {
     registerNamedFunction(SwampEvent.roomInfo).read.listen((packet) {
-      final data = packet.data;
-      final flags = data[0];
-      final maxPlayers = data[1] << 8 | data[2];
-      final currentId = data[3] << 8 | data[4];
-      final roomId = data.sublist(5);
-      _onRoomInfo.add(
-        RoomInfo(
-          flags: flags,
-          maxPlayers: maxPlayers,
-          currentId: currentId,
-          roomId: roomId,
-        ),
-      );
+      _onRoomInfo.add(RoomInfo.fromBytes(packet.data));
     });
     registerNamedFunction(SwampEvent.welcome).read.listen((packet) {
       _onWelcome.add(null);
@@ -316,18 +309,24 @@ class SwampConnection extends RawSwampConnection {
     ).read.listen((packet) => close());
     registerNamedFunction(SwampEvent.playerJoined).read.listen((packet) {
       final data = packet.data;
+      if (data.length < 2) return;
       final playerId = data[0] << 8 | data[1];
       addClientConnection(SwampClientConnectionInfo(this, playerId), playerId);
     });
     registerNamedFunction(SwampEvent.playerLeft).read.listen((packet) {
       final data = packet.data;
+      if (data.length < 2) return;
       final playerId = data[0] << 8 | data[1];
       removeConnection(playerId);
     });
     registerNamedFunction(SwampEvent.playerList).read.listen((packet) {
       final data = packet.data;
+      if (data.length < 2) return;
+      final count = data[0] << 8 | data[1];
+      final expectedLength = 2 + count * 2;
+      if (data.length < expectedLength) return;
       final playerIds = <Channel>{};
-      for (var i = 0; i < data.length; i += 2) {
+      for (var i = 2; i < expectedLength; i += 2) {
         playerIds.add(data[i] << 8 | data[i + 1]);
       }
       for (final id in playerIds) {

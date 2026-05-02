@@ -2,12 +2,12 @@
 title: API Reference
 ---
 
-The current api version is `v0` and paths are prefixed with `/api/v0`.
+The current Swamp wire protocol version is `1`.
 
 :::note
 
-The current swamp release doesn't support room flags currently.
-You can only use the default room configuration currently, so dark room events get sent to all players.
+Room flags are part of the wire format. Server configuration can reject
+unsupported flags, such as dark rooms when `noDarkRooms` is enabled.
 
 :::
 
@@ -20,13 +20,15 @@ Returns information about the server like the name but no sensitive information.
 ```json
 {
   "description": "A simple server",
-  "application": "linwood-swamp",
-  "max_players": 10,
-  "protocols": [0]
+  "name": "Swamp",
+  "rooms": 2,
+  "players": 5,
+  "maxPlayers": 10,
+  "protocols": [1]
 }
 ```
 
-The `protocols` field lists the protocol versions the server supports (e.g. `[0]`).
+The `protocols` field lists the protocol versions the server supports.
 
 ## Websocket: `GET`
 
@@ -35,14 +37,14 @@ Connect to the websocket to receive real-time updates.
 ### Protocol Version Negotiation
 
 The client **must** specify its protocol version using the `Sec-WebSocket-Protocol` header during the upgrade handshake.
-The subprotocol format is `swamp-<version>` (e.g. `swamp-0`).
+The subprotocol format is `swamp-<version>` (e.g. `swamp-1`).
 
 If the server does not support the requested version, it responds with HTTP `400 Bad Request` and a JSON body:
 
 ```json
 {
   "error": "unsupported_protocol",
-  "supported": ["0"]
+  "supported": ["swamp-1"]
 }
 ```
 
@@ -52,17 +54,17 @@ Clients should fetch `/info` first to discover supported protocol versions befor
 
 #### Message
 
-|      |                  |                    |                  |
-| ---- | ---------------- | ------------------ | ---------------- |
-| 0x00 | Sender (2 Bytes) | Receiver (2 Bytes) | Message (String) |
+|                  |                  |
+| ---------------- | ---------------- |
+| Sender (2 Bytes) | Message (Bytes)  |
 
 #### Room Info Update
 
 If we change a room or request a room info.
 
-|      |                |                       |                   |                 |
-| ---- | -------------- | --------------------- | ----------------- | --------------- |
-| 0x01 | Flags (1 Byte) | Max Players (2 Bytes) | Your ID (2 Bytes) | Room ID (Bytes) |
+|                |                       |                   |                 |
+| -------------- | --------------------- | ----------------- | --------------- |
+| Flags (1 Byte) | Max Players (2 Bytes) | Your ID (2 Bytes) | Room ID (Bytes) |
 
 See [Room Flags](#room-flags) for more information.
 
@@ -70,17 +72,15 @@ See [Room Flags](#room-flags) for more information.
 
 If you join the server.
 
-|      |
-| ---- |
-| 0x02 |
+No payload.
 
 #### Kicked from room
 
 If you are kicked from a room.
 
-|      |               |                  |
-| ---- | ------------- | ---------------- |
-| 0x03 | Reason (Byte) | Message (String) |
+|               |                  |
+| ------------- | ---------------- |
+| Reason (Byte) | Message (String) |
 
 ##### Reasons
 
@@ -96,9 +96,9 @@ If you are kicked from a room.
 
 If you want to join a room but it fails.
 
-|      |               |
-| ---- | ------------- |
-| 0x04 | Reason (Byte) |
+|               |
+| ------------- |
+| Reason (Byte) |
 
 ##### Reasons
 
@@ -114,9 +114,9 @@ If you want to join a room but it fails.
 
 If you create a room but it fails.
 
-|      |               |
-| ---- | ------------- |
-| 0x05 | Reason (Byte) |
+|               |
+| ------------- |
+| Reason (Byte) |
 
 ##### Reasons
 
@@ -132,35 +132,35 @@ If you create a room but it fails.
 *Dark Room Event*
 Notification that a player has joined the room.
 
-|      |                     |
-| ---- | ------------------- |
-| 0x06 | Player ID (2 Bytes) |
+|                     |
+| ------------------- |
+| Player ID (2 Bytes) |
 
 #### Player Left
 
 *Dark Room Event*
 Notification that a player has left the room.
 
-|      |                     |
-| ---- | ------------------- |
-| 0x07 | Player ID (2 Bytes) |
+|                     |
+| ------------------- |
+| Player ID (2 Bytes) |
 
 #### Player List
 
 *Dark Room Event (toggleable), but returns empty error if not permitted*
 List of players currently in the room.
 
-|      |                  |                     | ... |
-| ---- | ---------------- | ------------------- | --- |
-| 0x08 | Length (2 Bytes) | Player ID (2 Bytes) | ... |
+|                  |                     | ... |
+| ---------------- | ------------------- | --- |
+| Length (2 Bytes) | Player ID (2 Bytes) | ... |
 
 ### Available Commands
 
 #### Send Message
 
-|      |                     |                  |
-| ---- | ------------------- | ---------------- |
-| 0x00 | Player ID (2 Bytes) | Message (String) |
+|                     |                 |
+| ------------------- | --------------- |
+| Player ID (2 Bytes) | Message (Bytes) |
 
 Send a message to the receiver.
 There are some special player ids:
@@ -170,21 +170,19 @@ There are some special player ids:
 
 #### Join Room
 
-|      |                 |
-| ---- | --------------- |
-| 0x01 | Room ID (Bytes) |
+|                 |
+| --------------- |
+| Room ID (Bytes) |
 
 #### Leave Room
 
-|      |                 |
-| ---- | --------------- |
-| 0x02 | Room ID (Bytes) |
+No payload.
 
 #### Create Room
 
-|      |                |                                 |
-| ---- | -------------- | ------------------------------- |
-| 0x03 | Flags (1 Byte) | Max Players (2 Bytes, optional) |
+|                |                                 |
+| -------------- | ------------------------------- |
+| Flags (1 Byte) | Max Players (2 Bytes, optional) |
 
 If Max Players is not set or set to `0`, the server will use the default value.
 
@@ -192,15 +190,13 @@ If Max Players is not set or set to `0`, the server will use the default value.
 
 *Host only*
 
-|      |                     |                 |
-| ---- | ------------------- | --------------- |
-| 0x04 | Player ID (2 Bytes) | Reason (String) |
+|                     |                  |
+| ------------------- | ---------------- |
+| Player ID (2 Bytes) | Message (String) |
 
 #### Get Connected Players
 
-|      |
-| ---- |
-| 0x05 |
+No payload.
 
 #### Set Application
 
@@ -208,15 +204,13 @@ Allows you to restrict the supported rooms.
 This is useful if you want to prevent users from joining rooms created by other applications (e.g. different games).
 When set, you can only join rooms created by users with the same application identifier.
 
-|      |                     |
-| ---- | ------------------- |
-| 0x06 | Application ID (Bytes) |
+|                        |
+| ---------------------- |
+| Application ID (Bytes) |
 
 Send an empty byte array to remove the application restriction.
 
 ## Room Flags
-
-*Currently not implemented*
 
 | Flag | Description                                                                                          |
 | ---- | ---------------------------------------------------------------------------------------------------- |

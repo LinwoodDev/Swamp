@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:consoler/consoler.dart';
+import 'package:swamp/src/config.dart';
 import 'package:swamp/src/server.dart';
 import 'package:swamp_api/connection.dart';
 import 'package:test/test.dart';
@@ -560,6 +561,186 @@ void main() {
         expect(result['message'], message);
       } finally {
         messageSubscription.cancel();
+      }
+    });
+  });
+
+  group('Player List Tests', () {
+    late Uint8List roomId;
+
+    setUp(() async {
+      final roomCompleter = Completer<Uint8List>();
+      final roomSubscription = client1
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen((packet) {
+            roomCompleter.complete(RoomInfo.fromBytes(packet.data).roomId);
+          });
+
+      client1.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+      try {
+        roomId = await roomCompleter.future;
+      } finally {
+        await roomSubscription.cancel();
+      }
+
+      final joinCompleter = Completer<void>();
+      final joinSubscription = client2
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen((packet) => joinCompleter.complete());
+
+      client2.sendNamedFunction(SwampCommand.joinRoom, roomId);
+      try {
+        await joinCompleter.future;
+      } finally {
+        await joinSubscription.cancel();
+      }
+    });
+
+    test('Player list returns room player IDs with a length prefix', () async {
+      final listCompleter = Completer<List<int>>();
+      final subscription = client1
+          .registerNamedFunction(SwampEvent.playerList)
+          .read
+          .listen((packet) {
+            final data = packet.data;
+            final count = data[0] << 8 | data[1];
+            final players = <int>[];
+            for (var i = 0; i < count; i++) {
+              final offset = 2 + i * 2;
+              players.add(data[offset] << 8 | data[offset + 1]);
+            }
+            listCompleter.complete(players);
+          });
+
+      client1.sendNamedFunction(SwampCommand.playerList, Uint8List(0));
+
+      try {
+        expect(await listCompleter.future, unorderedEquals([1, 2]));
+      } finally {
+        await subscription.cancel();
+      }
+    });
+  });
+
+  group('Kick Tests', () {
+    late Uint8List roomId;
+
+    setUp(() async {
+      final roomCompleter = Completer<Uint8List>();
+      final roomSubscription = client1
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen((packet) {
+            roomCompleter.complete(RoomInfo.fromBytes(packet.data).roomId);
+          });
+
+      client1.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+      try {
+        roomId = await roomCompleter.future;
+      } finally {
+        await roomSubscription.cancel();
+      }
+
+      final joinCompleter = Completer<void>();
+      final joinSubscription = client2
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen((packet) => joinCompleter.complete());
+
+      client2.sendNamedFunction(SwampCommand.joinRoom, roomId);
+      try {
+        await joinCompleter.future;
+      } finally {
+        await joinSubscription.cancel();
+      }
+    });
+
+    test('Non-host cannot kick another player', () async {
+      final kicked = Completer<void>();
+      final subscription = client1
+          .registerNamedFunction(SwampEvent.kicked)
+          .read
+          .listen((packet) => kicked.complete());
+
+      client2.sendNamedFunction(
+        SwampCommand.kickPlayer,
+        Uint8List.fromList([0, 1]),
+      );
+
+      try {
+        await expectLater(
+          kicked.future.timeout(const Duration(milliseconds: 250)),
+          throwsA(isA<TimeoutException>()),
+        );
+      } finally {
+        await subscription.cancel();
+      }
+    });
+
+    test('Host can kick a room-local player ID', () async {
+      final kicked = Completer<KickReason>();
+      final subscription = client2
+          .registerNamedFunction(SwampEvent.kicked)
+          .read
+          .listen((packet) {
+            kicked.complete(KickReason.fromValue(packet.data[0]));
+          });
+
+      client1.sendNamedFunction(
+        SwampCommand.kickPlayer,
+        Uint8List.fromList([0, 2]),
+      );
+
+      try {
+        expect(await kicked.future, KickReason.kicked);
+      } finally {
+        await subscription.cancel();
+      }
+
+      client2 = RawSwampConnection(server: uri);
+      await client2.init();
+    });
+  });
+
+  group('Room Flag Tests', () {
+    test('Creating a dark room can be rejected by configuration', () async {
+      await client1.close();
+      await client2.close();
+      await server.close();
+
+      server = SwampServer(
+        host,
+        port,
+        minLogLevel: LogLevel.verbose,
+        withConsole: false,
+        configManager: ConfigManager(const SwampConfig(noDarkRooms: true)),
+      );
+      await server.init();
+      client1 = RawSwampConnection(server: uri);
+      client2 = RawSwampConnection(server: uri);
+      await client1.init();
+      await client2.init();
+
+      final failure = Completer<int>();
+      final subscription = client1
+          .registerNamedFunction(SwampEvent.roomCreationFailed)
+          .read
+          .listen((packet) => failure.complete(packet.data[0]));
+
+      client1.sendNamedFunction(
+        SwampCommand.createRoom,
+        Uint8List.fromList([RoomFlags.darkRoomFlag]),
+      );
+
+      try {
+        expect(
+          await failure.future,
+          CreationFailedReason.unsupportedFlags.value,
+        );
+      } finally {
+        await subscription.cancel();
       }
     });
   });
