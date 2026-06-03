@@ -323,6 +323,15 @@ packages:
       url: "https://github.com/LinwoodDev/dart_pkgs.git"
     source: git
     version: "1.0.0"
+  networker_socket:
+    dependency: "direct main"
+    description:
+      path: "packages/networker/networker_socket"
+      ref: db4a5c69a6928031155add4b42374be584b8e24a
+      resolved-ref: db4a5c69a6928031155add4b42374be584b8e24a
+      url: "https://github.com/LinwoodDev/dart_pkgs.git"
+    source: git
+    version: "1.0.0"
   node_preamble:
     dependency: transitive
     description:

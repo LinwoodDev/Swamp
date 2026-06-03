@@ -2,13 +2,13 @@
 /* Background: #35EF53 with 0.1 chroma */
 /* Dark mode colors. */
 :root {
-	--sl-color-accent: #00811b;
+	--sl-color-accent: #4D55D8;
   --sl-color-white: #ffffff;
   --sl-font-system: "Inter", sans-serif;
 }
 /* Light mode colors. */
 :root[data-theme="light"] {
-	--sl-color-accent: #007c1a;
+	--sl-color-accent: #4D55D8;
   --sl-color-white: #151915;
 }
 

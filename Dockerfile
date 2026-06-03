@@ -1,5 +1,5 @@
 # Use latest stable channel SDK.
-FROM dart:3.12.0 AS build
+FROM dart:3.12.1 AS build
 
 # Configure Git to avoid hardlink issues in Docker
 RUN git config --global core.autocrlf false && \
