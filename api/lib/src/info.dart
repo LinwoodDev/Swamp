@@ -10,20 +10,10 @@ final class SwampClientConnectionInfo extends ConnectionInfo {
   Uri get address => parent.address;
 
   @override
-  Future<void> close([String? message]) async {
-    final socketChannel = parent._channel;
-    if (socketChannel == null) return;
-    socketChannel.sink.add([
-      0x04,
-      channel >> 8,
-      channel & 0xFF,
-      ...?message?.codeUnits,
-    ]);
-    return socketChannel.sink.close();
-  }
+  Future<void> close([String? message]) async {}
 
   @override
-  bool get isClosed => parent.clientConnections.contains(channel);
+  bool get isClosed => !parent.clientConnections.contains(channel);
 
   @override
   void sendMessage(Uint8List data) {

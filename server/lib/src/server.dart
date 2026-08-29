@@ -33,6 +33,7 @@ class SwampServer extends NetworkerSocketServer {
     maxRequests: 200,
     duration: Duration(seconds: 10),
   );
+  Future<void>? _closeFuture;
 
   /// The current server configuration.
   SwampConfig get config => configManager.config;
@@ -145,6 +146,7 @@ class SwampServer extends NetworkerSocketServer {
     clientDisconnect.listen((event) {
       log('Client disconnected: ${event.$1}', LogLevel.info);
       roomManager.leaveRoom(event.$1);
+      roomManager.setApplication(event.$1, null);
     });
     _rpcPipe
       ..registerNamedFunction(SwampCommand.message).read.listen((event) {
@@ -236,13 +238,11 @@ class SwampServer extends NetworkerSocketServer {
   }
 
   @override
-  Future<void> close() async {
+  Future<void> close() {
+    final pending = _closeFuture;
+    if (pending != null) return pending;
     _consoler.dispose();
-    // Pre-close the HTTP server so the stream listener's onDone callback
-    // fires before super.close() closes the broadcast stream controllers.
-    // This avoids "Cannot add new events after calling close".
-    await server?.close();
-    await Future.delayed(Duration.zero);
-    return super.close();
+    _spamLimiter.dispose();
+    return _closeFuture = super.close();
   }
 }

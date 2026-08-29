@@ -42,6 +42,11 @@ class RawSwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   Channel? get receiverChannel => null;
 
   WebSocketChannel? _channel;
+  StreamSubscription<dynamic>? _channelSubscription;
+  Future<void>? _initFuture;
+  Future<void>? _rawCloseFuture;
+  bool _disposed = false;
+  bool _closedNotified = false;
 
   /// The protocol version this client will use when connecting.
   final int protocolVersion;
@@ -55,17 +60,42 @@ class RawSwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   });
 
   @override
-  FutureOr<void> close() {
-    super.close();
-    _channel?.sink.close();
+  Future<void> close() {
+    final pending = _rawCloseFuture;
+    if (pending != null) return pending;
+    _disposed = true;
+    final parentClose = super.close();
+    return _rawCloseFuture = _closeRaw(parentClose);
+  }
+
+  Future<void> _closeRaw(Future<void> parentClose) async {
+    final channel = _channel;
     _channel = null;
+    try {
+      await channel?.sink.close();
+      await _channelSubscription?.cancel();
+      _channelSubscription = null;
+      await parentClose;
+    } finally {
+      _notifyClosed();
+      await _onOpen.close();
+      await _onClosed.close();
+      dispose();
+    }
   }
 
   @override
-  Future<void> init() async {
-    if (isOpen) {
-      return;
+  Future<void> init() {
+    if (_disposed) {
+      return Future.error(StateError('Connection is closed'));
     }
+    if (isOpen) return Future.value();
+    return _initFuture ??= _init().whenComplete(() => _initFuture = null);
+  }
+
+  Future<void> _init() async {
+    await _channelSubscription?.cancel();
+    _closedNotified = false;
     var address = this.address;
     final scheme = address.scheme;
     if (scheme.startsWith(kSwampSchemePrefix)) {
@@ -80,7 +110,7 @@ class RawSwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
       address,
       protocols: [swampSubprotocol(protocolVersion)],
     );
-    channel.stream.listen(
+    _channelSubscription = channel.stream.listen(
       (event) {
         if (event is String) {
           event = Uint8List.fromList(event.codeUnits);
@@ -88,15 +118,32 @@ class RawSwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
         onMessage(event);
       },
       onDone: () {
-        _onClosed.add(null);
+        _channel = null;
+        _notifyClosed();
       },
       onError: (error) {
-        _onClosed.addError(error);
+        _channel = null;
+        _notifyClosed(error);
       },
-      cancelOnError: true,
     );
-    await channel.ready;
-    _onOpen.add(null);
+    try {
+      await channel.ready;
+      _onOpen.add(null);
+    } catch (_) {
+      _channel = null;
+      await channel.sink.close();
+      rethrow;
+    }
+  }
+
+  void _notifyClosed([Object? error]) {
+    if (_closedNotified || _onClosed.isClosed) return;
+    _closedNotified = true;
+    if (error == null) {
+      _onClosed.add(null);
+    } else {
+      _onClosed.addError(error);
+    }
   }
 
   @override
@@ -133,6 +180,7 @@ class SwampConnection extends RawSwampConnection {
   final RoomFlags flags;
   KickReason? _kickReason;
   Uint8List? _kickMessage;
+  Future<void>? _swampCloseFuture;
 
   KickReason? get kickReason => _kickReason;
   Uint8List? get kickMessage => _kickMessage;
@@ -221,6 +269,24 @@ class SwampConnection extends RawSwampConnection {
       protocolVersion: protocolVersion,
     );
   }
+
+  @override
+  Future<void> close() {
+    final pending = _swampCloseFuture;
+    if (pending != null) return pending;
+    final parentClose = super.close();
+    return _swampCloseFuture = _closeSwamp(parentClose);
+  }
+
+  Future<void> _closeSwamp(Future<void> parentClose) async {
+    try {
+      await parentClose;
+    } finally {
+      await _onWelcome.close();
+      await _onRoomInfo.close();
+    }
+  }
+
   static Future<SwampConnection> buildSecure(
     Uri address,
     Cipher cipher, {
@@ -317,7 +383,7 @@ class SwampConnection extends RawSwampConnection {
       final data = packet.data;
       if (data.length < 2) return;
       final playerId = data[0] << 8 | data[1];
-      removeConnection(playerId);
+      removeConnection(playerId).ignore();
     });
     registerNamedFunction(SwampEvent.playerList).read.listen((packet) {
       final data = packet.data;
@@ -335,7 +401,7 @@ class SwampConnection extends RawSwampConnection {
       }
       for (final id in clientConnections) {
         if (playerIds.contains(id)) continue;
-        removeConnection(id);
+        removeConnection(id).ignore();
       }
     });
   }
