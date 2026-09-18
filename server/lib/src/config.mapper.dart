@@ -29,12 +29,26 @@ class SwampConfigMapper extends ClassMapperBase<SwampConfig> {
     opt: true,
     def: "",
   );
-  static int _$maxPlayers(SwampConfig v) => v.maxPlayers;
-  static const Field<SwampConfig, int> _f$maxPlayers = Field(
-    'maxPlayers',
-    _$maxPlayers,
+  static int _$maxPlayersPerRoom(SwampConfig v) => v.maxPlayersPerRoom;
+  static const Field<SwampConfig, int> _f$maxPlayersPerRoom = Field(
+    'maxPlayersPerRoom',
+    _$maxPlayersPerRoom,
     opt: true,
     def: 1024,
+  );
+  static int _$maxConcurrentPlayers(SwampConfig v) => v.maxConcurrentPlayers;
+  static const Field<SwampConfig, int> _f$maxConcurrentPlayers = Field(
+    'maxConcurrentPlayers',
+    _$maxConcurrentPlayers,
+    opt: true,
+    def: 0,
+  );
+  static int _$maxRooms(SwampConfig v) => v.maxRooms;
+  static const Field<SwampConfig, int> _f$maxRooms = Field(
+    'maxRooms',
+    _$maxRooms,
+    opt: true,
+    def: 0,
   );
   static bool _$noDarkRooms(SwampConfig v) => v.noDarkRooms;
   static const Field<SwampConfig, bool> _f$noDarkRooms = Field(
@@ -47,14 +61,18 @@ class SwampConfigMapper extends ClassMapperBase<SwampConfig> {
   @override
   final MappableFields<SwampConfig> fields = const {
     #description: _f$description,
-    #maxPlayers: _f$maxPlayers,
+    #maxPlayersPerRoom: _f$maxPlayersPerRoom,
+    #maxConcurrentPlayers: _f$maxConcurrentPlayers,
+    #maxRooms: _f$maxRooms,
     #noDarkRooms: _f$noDarkRooms,
   };
 
   static SwampConfig _instantiate(DecodingData data) {
     return SwampConfig(
       description: data.dec(_f$description),
-      maxPlayers: data.dec(_f$maxPlayers),
+      maxPlayersPerRoom: data.dec(_f$maxPlayersPerRoom),
+      maxConcurrentPlayers: data.dec(_f$maxConcurrentPlayers),
+      maxRooms: data.dec(_f$maxRooms),
       noDarkRooms: data.dec(_f$noDarkRooms),
     );
   }
@@ -119,7 +137,13 @@ extension SwampConfigValueCopy<$R, $Out>
 
 abstract class SwampConfigCopyWith<$R, $In extends SwampConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
-  $R call({String? description, int? maxPlayers, bool? noDarkRooms});
+  $R call({
+    String? description,
+    int? maxPlayersPerRoom,
+    int? maxConcurrentPlayers,
+    int? maxRooms,
+    bool? noDarkRooms,
+  });
   SwampConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }
 
@@ -132,17 +156,34 @@ class _SwampConfigCopyWithImpl<$R, $Out>
   late final ClassMapperBase<SwampConfig> $mapper =
       SwampConfigMapper.ensureInitialized();
   @override
-  $R call({String? description, int? maxPlayers, bool? noDarkRooms}) => $apply(
+  $R call({
+    String? description,
+    int? maxPlayersPerRoom,
+    int? maxConcurrentPlayers,
+    int? maxRooms,
+    bool? noDarkRooms,
+  }) => $apply(
     FieldCopyWithData({
       if (description != null) #description: description,
-      if (maxPlayers != null) #maxPlayers: maxPlayers,
+      if (maxPlayersPerRoom != null) #maxPlayersPerRoom: maxPlayersPerRoom,
+      if (maxConcurrentPlayers != null)
+        #maxConcurrentPlayers: maxConcurrentPlayers,
+      if (maxRooms != null) #maxRooms: maxRooms,
       if (noDarkRooms != null) #noDarkRooms: noDarkRooms,
     }),
   );
   @override
   SwampConfig $make(CopyWithData data) => SwampConfig(
     description: data.get(#description, or: $value.description),
-    maxPlayers: data.get(#maxPlayers, or: $value.maxPlayers),
+    maxPlayersPerRoom: data.get(
+      #maxPlayersPerRoom,
+      or: $value.maxPlayersPerRoom,
+    ),
+    maxConcurrentPlayers: data.get(
+      #maxConcurrentPlayers,
+      or: $value.maxConcurrentPlayers,
+    ),
+    maxRooms: data.get(#maxRooms, or: $value.maxRooms),
     noDarkRooms: data.get(#noDarkRooms, or: $value.noDarkRooms),
   );
 

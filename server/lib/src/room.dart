@@ -124,16 +124,27 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
   /// The current server configuration.
   SwampConfig get config => configManager.config;
 
+  bool get _isAtConcurrentPlayerLimit =>
+      config.maxConcurrentPlayers > 0 &&
+      _playerCount >= config.maxConcurrentPlayers;
+
+  bool get _isAtRoomLimit =>
+      config.maxRooms > 0 && _rooms.length >= config.maxRooms;
+
   SwampRoomManager(this.configManager);
 
   /// Attempts to add a player to a room.
   ///
   /// Returns the [SwampRoom] if successful, or `null` if the room wasn't found,
-  /// is full, or the application ID doesn't match.
+  /// the room or server is full, or the application ID doesn't match.
   SwampRoom? joinRoom(Uint8List roomId, Channel player) {
     final room = getRoom(roomId);
     if (room == null) {
       _sendJoinFailed(player, JoinFailedReason.roomNotFound);
+      return null;
+    }
+    if (_isAtConcurrentPlayerLimit) {
+      _sendJoinFailed(player, JoinFailedReason.serverFull);
       return null;
     }
     final application = _application[player];
@@ -173,7 +184,11 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
   }) {
     var room = getChannelRoom(owner);
     if (room != null) {
-      _sendCreationFailed(owner, CreationFailedReason.inRoom);
+      sendCreationFailed(owner, CreationFailedReason.inRoom);
+      return null;
+    }
+    if (_isAtConcurrentPlayerLimit || _isAtRoomLimit) {
+      sendCreationFailed(owner, CreationFailedReason.limitReached);
       return null;
     }
     var roomId = generateRandomRoomId();
@@ -181,13 +196,13 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
       roomId = generateRandomRoomId();
     }
     if (roomFlags.isDarkRoom && config.noDarkRooms) {
-      _sendCreationFailed(owner, CreationFailedReason.unsupportedFlags);
+      sendCreationFailed(owner, CreationFailedReason.unsupportedFlags);
       return null;
     }
     if (maxPlayers == null ||
         maxPlayers == 0 ||
-        maxPlayers > config.maxPlayers) {
-      maxPlayers = config.maxPlayers;
+        maxPlayers > config.maxPlayersPerRoom) {
+      maxPlayers = config.maxPlayersPerRoom;
     }
     room = SwampRoom._(
       roomId,
@@ -248,7 +263,8 @@ final class SwampRoomManager extends SimpleNetworkerPipe<RpcNetworkerPacket> {
     );
   }
 
-  void _sendCreationFailed(Channel channel, CreationFailedReason reason) {
+  /// Sends a room creation failure to [channel].
+  void sendCreationFailed(Channel channel, CreationFailedReason reason) {
     final builder = BytesBuilder();
     builder.addByte(reason.value);
     sendMessage(

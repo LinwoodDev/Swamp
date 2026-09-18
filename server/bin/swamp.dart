@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:consoler/consoler.dart';
+import 'package:swamp/src/authentication.dart';
 import 'package:swamp/src/server.dart';
 
 final welcomeMessage = """
@@ -30,7 +31,12 @@ Future<void> main(List<String> args) async {
       ..usePrivateKeyBytes(privateKey)
       ..useCertificateChainBytes(certificate);
   } on PathNotFoundException catch (_) {}
-  final server = SwampServer(ip, port, securityContext: securityContext);
+  final server = SwampServer(
+    ip,
+    port,
+    securityContext: securityContext,
+    authentication: swampAuthenticationFromEnvironment(Platform.environment),
+  );
   await server.configManager.load();
   server.log(welcomeMessage);
   if (securityContext != null) {

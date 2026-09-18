@@ -744,4 +744,152 @@ void main() {
       }
     });
   });
+
+  group('Server Capacity Tests', () {
+    test(
+      'Concurrent player limit applies across rooms and releases on leave',
+      () async {
+        await client1.close();
+        await client2.close();
+        await server.close();
+
+        server = SwampServer(
+          host,
+          port,
+          minLogLevel: LogLevel.error,
+          withConsole: false,
+          configManager: ConfigManager(
+            const SwampConfig(maxConcurrentPlayers: 1),
+          ),
+        );
+        await server.init();
+        client1 = RawSwampConnection(server: uri);
+        client2 = RawSwampConnection(server: uri);
+        await client1.init();
+        await client2.init();
+
+        final roomCreated = Completer<RoomInfo>();
+        final roomSubscription = client1
+            .registerNamedFunction(SwampEvent.roomInfo)
+            .read
+            .listen(
+              (packet) => roomCreated.complete(RoomInfo.fromBytes(packet.data)),
+            );
+        client1.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+        final room = await roomCreated.future;
+        await roomSubscription.cancel();
+
+        final joinFailure = Completer<JoinFailedReason>();
+        final joinSubscription = client2
+            .registerNamedFunction(SwampEvent.roomJoinFailed)
+            .read
+            .listen(
+              (packet) => joinFailure.complete(
+                JoinFailedReason.fromValue(packet.data.single),
+              ),
+            );
+        client2.sendNamedFunction(SwampCommand.joinRoom, room.roomId);
+        expect(await joinFailure.future, JoinFailedReason.serverFull);
+        await joinSubscription.cancel();
+
+        final creationFailure = Completer<CreationFailedReason>();
+        final creationSubscription = client2
+            .registerNamedFunction(SwampEvent.roomCreationFailed)
+            .read
+            .listen(
+              (packet) => creationFailure.complete(
+                CreationFailedReason.fromValue(packet.data.single),
+              ),
+            );
+        client2.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+        expect(await creationFailure.future, CreationFailedReason.limitReached);
+        await creationSubscription.cancel();
+
+        client1.sendNamedFunction(SwampCommand.leaveRoom, Uint8List(0));
+        for (
+          var attempt = 0;
+          attempt < 100 && server.roomManager.playerCount != 0;
+          attempt++
+        ) {
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+        }
+        expect(server.roomManager.playerCount, 0);
+
+        final secondRoom = Completer<RoomInfo>();
+        final secondRoomSubscription = client2
+            .registerNamedFunction(SwampEvent.roomInfo)
+            .read
+            .listen(
+              (packet) => secondRoom.complete(RoomInfo.fromBytes(packet.data)),
+            );
+        client2.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+        expect((await secondRoom.future).currentId, 1);
+        await secondRoomSubscription.cancel();
+      },
+    );
+
+    test('Room limit is released when a room closes', () async {
+      await client1.close();
+      await client2.close();
+      await server.close();
+
+      server = SwampServer(
+        host,
+        port,
+        minLogLevel: LogLevel.error,
+        withConsole: false,
+        configManager: ConfigManager(const SwampConfig(maxRooms: 1)),
+      );
+      await server.init();
+      client1 = RawSwampConnection(server: uri);
+      client2 = RawSwampConnection(server: uri);
+      await client1.init();
+      await client2.init();
+
+      final firstRoom = Completer<RoomInfo>();
+      final firstRoomSubscription = client1
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen(
+            (packet) => firstRoom.complete(RoomInfo.fromBytes(packet.data)),
+          );
+      client1.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+      await firstRoom.future;
+      await firstRoomSubscription.cancel();
+
+      final creationFailure = Completer<CreationFailedReason>();
+      final failureSubscription = client2
+          .registerNamedFunction(SwampEvent.roomCreationFailed)
+          .read
+          .listen(
+            (packet) => creationFailure.complete(
+              CreationFailedReason.fromValue(packet.data.single),
+            ),
+          );
+      client2.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+      expect(await creationFailure.future, CreationFailedReason.limitReached);
+      await failureSubscription.cancel();
+
+      client1.sendNamedFunction(SwampCommand.leaveRoom, Uint8List(0));
+      for (
+        var attempt = 0;
+        attempt < 100 && server.roomManager.rooms.isNotEmpty;
+        attempt++
+      ) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      expect(server.roomManager.rooms, isEmpty);
+
+      final secondRoom = Completer<RoomInfo>();
+      final secondRoomSubscription = client2
+          .registerNamedFunction(SwampEvent.roomInfo)
+          .read
+          .listen(
+            (packet) => secondRoom.complete(RoomInfo.fromBytes(packet.data)),
+          );
+      client2.sendNamedFunction(SwampCommand.createRoom, Uint8List(0));
+      expect((await secondRoom.future).currentId, 1);
+      await secondRoomSubscription.cancel();
+    });
+  });
 }

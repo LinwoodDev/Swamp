@@ -13,11 +13,23 @@ final class SwampConfig with SwampConfigMappable {
   /// A description of the server.
   final String description;
 
-  /// Environment variable for the maximum number of players.
-  static const maxPlayersEnvironment = 'SWAMP_MAX_PLAYERS';
+  /// Environment variable for the maximum players allowed in one room.
+  static const maxPlayersPerRoomEnvironment = 'SWAMP_MAX_PLAYERS_PER_ROOM';
 
   /// The maximum number of players allowed in a room.
-  final int maxPlayers;
+  final int maxPlayersPerRoom;
+
+  /// Environment variable for the maximum concurrent players on the server.
+  static const maxConcurrentPlayersEnvironment = 'SWAMP_MAX_CONCURRENT_PLAYERS';
+
+  /// The maximum number of players across all rooms. Zero means unlimited.
+  final int maxConcurrentPlayers;
+
+  /// Environment variable for the maximum number of rooms.
+  static const maxRoomsEnvironment = 'SWAMP_MAX_ROOMS';
+
+  /// The maximum number of active rooms. Zero means unlimited.
+  final int maxRooms;
 
   /// Environment variable to disable dark rooms.
   static const noDarkRoomsEnvironment = 'SWAMP_NO_DARK_ROOMS';
@@ -27,7 +39,9 @@ final class SwampConfig with SwampConfigMappable {
 
   const SwampConfig({
     this.description = "",
-    this.maxPlayers = 1024,
+    this.maxPlayersPerRoom = 1024,
+    this.maxConcurrentPlayers = 0,
+    this.maxRooms = 0,
     this.noDarkRooms = false,
   });
 
@@ -37,19 +51,42 @@ final class SwampConfig with SwampConfigMappable {
   factory SwampConfig.withEnvironment(
     Map<String, dynamic> data, {
     String? description,
-    int? maxPlayers,
+    int? maxPlayersPerRoom,
+    int? maxConcurrentPlayers,
+    int? maxRooms,
     bool? noDarkRooms,
   }) {
     final descriptionEnv =
         Platform.environment[descriptionEnvironment] ??
         String.fromEnvironment(descriptionEnvironment);
-    final maxPlayersEnvString =
-        Platform.environment[maxPlayersEnvironment] ??
-        (int.fromEnvironment(maxPlayersEnvironment, defaultValue: -1) == -1
+    final maxPlayersPerRoomEnvString =
+        Platform.environment[maxPlayersPerRoomEnvironment] ??
+        (int.fromEnvironment(maxPlayersPerRoomEnvironment, defaultValue: -1) ==
+                -1
             ? null
-            : int.fromEnvironment(maxPlayersEnvironment).toString());
-    final maxPlayersEnv = maxPlayersEnvString != null
-        ? int.tryParse(maxPlayersEnvString)
+            : int.fromEnvironment(maxPlayersPerRoomEnvironment).toString());
+    final maxPlayersPerRoomEnv = maxPlayersPerRoomEnvString != null
+        ? int.tryParse(maxPlayersPerRoomEnvString)
+        : null;
+    final maxConcurrentPlayersEnvString =
+        Platform.environment[maxConcurrentPlayersEnvironment] ??
+        (int.fromEnvironment(
+                  maxConcurrentPlayersEnvironment,
+                  defaultValue: -1,
+                ) ==
+                -1
+            ? null
+            : int.fromEnvironment(maxConcurrentPlayersEnvironment).toString());
+    final maxConcurrentPlayersEnv = maxConcurrentPlayersEnvString != null
+        ? int.tryParse(maxConcurrentPlayersEnvString)
+        : null;
+    final maxRoomsEnvString =
+        Platform.environment[maxRoomsEnvironment] ??
+        (int.fromEnvironment(maxRoomsEnvironment, defaultValue: -1) == -1
+            ? null
+            : int.fromEnvironment(maxRoomsEnvironment).toString());
+    final maxRoomsEnv = maxRoomsEnvString != null
+        ? int.tryParse(maxRoomsEnvString)
         : null;
 
     final noDarkRoomsEnvString =
@@ -62,11 +99,16 @@ final class SwampConfig with SwampConfigMappable {
     return SwampConfigMapper.fromMap({
       ...data,
       if (descriptionEnv.isNotEmpty) 'description': descriptionEnv,
-      if (maxPlayersEnv != null && maxPlayersEnv >= 0)
-        'maxPlayers': maxPlayersEnv,
+      if (maxPlayersPerRoomEnv != null && maxPlayersPerRoomEnv >= 0)
+        'maxPlayersPerRoom': maxPlayersPerRoomEnv,
+      if (maxConcurrentPlayersEnv != null && maxConcurrentPlayersEnv >= 0)
+        'maxConcurrentPlayers': maxConcurrentPlayersEnv,
+      if (maxRoomsEnv != null && maxRoomsEnv >= 0) 'maxRooms': maxRoomsEnv,
       if (noDarkRoomsEnv) 'noDarkRooms': true,
       'noDarkRooms': ?noDarkRooms,
-      'maxPlayers': ?maxPlayers,
+      'maxPlayersPerRoom': ?maxPlayersPerRoom,
+      'maxConcurrentPlayers': ?maxConcurrentPlayers,
+      'maxRooms': ?maxRooms,
       'description': ?description,
     });
   }

@@ -18,6 +18,14 @@ class SwampServer extends NetworkerSocketServer {
   /// The configuration manager for the server.
   final ConfigManager configManager;
 
+  /// Optional authentication and authorization configuration.
+  final SwampAuthentication? authentication;
+
+  late final SwampAuthenticationManager? _authenticationManager =
+      authentication == null
+      ? null
+      : SwampAuthenticationManager(authentication!);
+
   /// The room manager responsible for handling room logic.
   late final SwampRoomManager roomManager = SwampRoomManager(configManager);
 
@@ -49,6 +57,7 @@ class SwampServer extends NetworkerSocketServer {
     super.serverAddress,
     super.port, {
     ConfigManager? configManager,
+    this.authentication,
     bool withConsole = true,
     LogLevel? minLogLevel,
     super.securityContext,
@@ -110,6 +119,10 @@ class SwampServer extends NetworkerSocketServer {
 
   @override
   Future<void> handleWebSocketUpgrade(HttpRequest request) async {
+    final authenticationRequest = AuthenticationRequest.fromHttpRequest(
+      request,
+    );
+
     // Select the best matching Swamp subprotocol during the WS handshake.
     request.response.statusCode = HttpStatus.switchingProtocols;
     final socket = await WebSocketTransformer.upgrade(
@@ -131,7 +144,69 @@ class SwampServer extends NetworkerSocketServer {
       socket.close();
       return;
     }
+    _authenticationManager?.connected(
+      id,
+      authenticationRequest,
+      onTimeout: () => closeConnection(id),
+    );
     handleWebSocketConnection(id, connectionInfo, socket);
+  }
+
+  bool _isConnectionAuthorized(Channel channel) {
+    return _authenticationManager?.isConnectionAuthorized(channel) ?? true;
+  }
+
+  void _rejectUnauthorizedCommand(Channel channel) {
+    _sendAuthenticationFailed(channel);
+    closeConnection(channel);
+  }
+
+  void _sendAuthenticationFailed(Channel channel) {
+    _rpcPipe.sendNamedFunction(
+      SwampEvent.authenticationFailed,
+      Uint8List(0),
+      channel: channel,
+    );
+  }
+
+  Future<void> _authenticateConnection(Channel channel, Uint8List data) async {
+    final manager = _authenticationManager;
+    if (manager == null) {
+      _rpcPipe.sendNamedFunction(
+        SwampEvent.authenticated,
+        Uint8List(0),
+        channel: channel,
+      );
+      return;
+    }
+
+    AuthenticationAttemptResult result;
+    try {
+      final token = utf8.decode(data, allowMalformed: true);
+      result = await manager.authenticate(channel, token);
+    } catch (error) {
+      log('Authentication source failed: $error', LogLevel.error);
+      result = AuthenticationAttemptResult.rejected;
+    }
+
+    switch (result) {
+      case AuthenticationAttemptResult.authenticated:
+        _rpcPipe.sendNamedFunction(
+          SwampEvent.authenticated,
+          Uint8List(0),
+          channel: channel,
+        );
+        if (manager.requiresAuthentication) {
+          roomManager.sendRoomInfo(channel);
+        }
+        return;
+      case AuthenticationAttemptResult.rejected:
+        _sendAuthenticationFailed(channel);
+        closeConnection(channel);
+        return;
+      case AuthenticationAttemptResult.inProgress:
+        return;
+    }
   }
 
   /// Logs a message to the console.
@@ -141,15 +216,22 @@ class SwampServer extends NetworkerSocketServer {
   void _initFunctions() {
     clientConnect.listen((event) {
       log('Client connected: ${event.$1}', LogLevel.info);
-      roomManager.sendRoomInfo(event.$1);
+      if (_isConnectionAuthorized(event.$1)) {
+        roomManager.sendRoomInfo(event.$1);
+      }
     });
     clientDisconnect.listen((event) {
       log('Client disconnected: ${event.$1}', LogLevel.info);
+      _authenticationManager?.disconnected(event.$1);
       roomManager.leaveRoom(event.$1);
       roomManager.setApplication(event.$1, null);
     });
     _rpcPipe
       ..registerNamedFunction(SwampCommand.message).read.listen((event) {
+        if (!_isConnectionAuthorized(event.channel)) {
+          _rejectUnauthorizedCommand(event.channel);
+          return;
+        }
         if (event.data.length < 2) {
           log('Invalid message packet from ${event.channel}', LogLevel.warning);
           return;
@@ -160,6 +242,17 @@ class SwampServer extends NetworkerSocketServer {
         roomManager.sendMessageToRoom(sender, receiver, message);
       })
       ..registerNamedFunction(SwampCommand.createRoom).read.listen((event) {
+        if (!_isConnectionAuthorized(event.channel)) {
+          _rejectUnauthorizedCommand(event.channel);
+          return;
+        }
+        if (_authenticationManager?.canCreateRooms(event.channel) == false) {
+          roomManager.sendCreationFailed(
+            event.channel,
+            CreationFailedReason.unauthorized,
+          );
+          return;
+        }
         final flags = RoomFlags(event.data.elementAtOrNull(0) ?? 0);
         final maxPlayers = event.data.length >= 3
             ? ByteData.sublistView(event.data, 1, 3).getUint16(0)
@@ -174,6 +267,10 @@ class SwampServer extends NetworkerSocketServer {
         }
       })
       ..registerNamedFunction(SwampCommand.joinRoom).read.listen((event) {
+        if (!_isConnectionAuthorized(event.channel)) {
+          _rejectUnauthorizedCommand(event.channel);
+          return;
+        }
         final room = roomManager.joinRoom(event.data, event.channel);
         if (room == null) {
           log('Client ${event.channel} failed to join room', LogLevel.warning);
@@ -185,10 +282,18 @@ class SwampServer extends NetworkerSocketServer {
         );
       })
       ..registerNamedFunction(SwampCommand.leaveRoom).read.listen((event) {
+        if (!_isConnectionAuthorized(event.channel)) {
+          _rejectUnauthorizedCommand(event.channel);
+          return;
+        }
         roomManager.leaveRoom(event.channel);
         log('Client ${event.channel} left room', LogLevel.info);
       })
       ..registerNamedFunction(SwampCommand.kickPlayer).read.listen((event) {
+        if (!_isConnectionAuthorized(event.channel)) {
+          _rejectUnauthorizedCommand(event.channel);
+          return;
+        }
         if (event.data.length < 2) {
           log('Invalid kick packet from ${event.channel}', LogLevel.warning);
           return;
@@ -215,6 +320,10 @@ class SwampServer extends NetworkerSocketServer {
         }
       })
       ..registerNamedFunction(SwampCommand.playerList).read.listen((event) {
+        if (!_isConnectionAuthorized(event.channel)) {
+          _rejectUnauthorizedCommand(event.channel);
+          return;
+        }
         final players =
             roomManager.getChannelRoom(event.channel)?.channels ?? <Channel>[];
         final builder = BytesBuilder();
@@ -232,8 +341,15 @@ class SwampServer extends NetworkerSocketServer {
         log('Player list sent to ${event.channel}', LogLevel.verbose);
       })
       ..registerNamedFunction(SwampCommand.setApplication).read.listen((event) {
+        if (!_isConnectionAuthorized(event.channel)) {
+          _rejectUnauthorizedCommand(event.channel);
+          return;
+        }
         roomManager.setApplication(event.channel, event.data);
         log('Application set for ${event.channel}', LogLevel.verbose);
+      })
+      ..registerNamedFunction(SwampCommand.authenticate).read.listen((event) {
+        _authenticateConnection(event.channel, event.data);
       });
   }
 
@@ -243,6 +359,15 @@ class SwampServer extends NetworkerSocketServer {
     if (pending != null) return pending;
     _consoler.dispose();
     _spamLimiter.dispose();
-    return _closeFuture = super.close();
+    final parentClose = super.close();
+    return _closeFuture = _closeServer(parentClose);
+  }
+
+  Future<void> _closeServer(Future<void> parentClose) async {
+    try {
+      await parentClose;
+    } finally {
+      await _authenticationManager?.close();
+    }
   }
 }

@@ -8,6 +8,7 @@ export 'src/programs/rooms.dart';
 export 'src/programs/stop.dart';
 
 export 'src/config.dart';
+export 'src/authentication.dart';
 export 'src/info.dart';
 export 'src/rate_limiter.dart';
 export 'src/room.dart';

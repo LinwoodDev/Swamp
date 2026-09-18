@@ -19,7 +19,9 @@ class ConfigProgram extends ConsoleProgram {
     final config = server.config;
     print("""Configuration:
 - Description: ${json.encode(config.description)}
-- Max Players: ${config.maxPlayers}
+- Max Players Per Room: ${config.maxPlayersPerRoom}
+- Max Concurrent Players: ${config.maxConcurrentPlayers == 0 ? 'unlimited' : config.maxConcurrentPlayers}
+- Max Rooms: ${config.maxRooms == 0 ? 'unlimited' : config.maxRooms}
 - No Dark Rooms: ${config.noDarkRooms}""");
   }
 }

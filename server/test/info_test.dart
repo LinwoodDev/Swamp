@@ -46,6 +46,12 @@ void main() {
         expect(data['name'], isNotEmpty);
         expect(data['rooms'], isNotNull);
         expect(data['players'], isNotNull);
+        expect(data['maxPlayersPerRoom'], server.config.maxPlayersPerRoom);
+        expect(
+          data['maxConcurrentPlayers'],
+          server.config.maxConcurrentPlayers,
+        );
+        expect(data['maxRooms'], server.config.maxRooms);
         expect(data['protocols'], isList);
         expect(data['protocols'], contains(1));
       } finally {

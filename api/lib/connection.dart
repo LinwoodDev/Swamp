@@ -1,6 +1,7 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cryptography_plus/cryptography_plus.dart';
@@ -51,12 +52,19 @@ class RawSwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
   /// The protocol version this client will use when connecting.
   final int protocolVersion;
 
+  /// Bearer token sent as the first Swamp protocol command.
+  ///
+  /// This is the recommended authentication mechanism because it works on
+  /// native and browser WebSocket clients. Use `wss` in production.
+  final String? accessToken;
+
   @override
   bool get isServer => false;
 
   RawSwampConnection({
     required this.server,
     this.protocolVersion = kSwampProtocolVersion,
+    this.accessToken,
   });
 
   @override
@@ -128,11 +136,49 @@ class RawSwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
     );
     try {
       await channel.ready;
+      final token = accessToken;
+      if (token != null) await _authenticate(token);
       _onOpen.add(null);
     } catch (_) {
       _channel = null;
       await channel.sink.close();
       rethrow;
+    }
+  }
+
+  Future<void> _authenticate(String token) async {
+    final result = Completer<void>();
+    final authenticated = registerNamedFunction(SwampEvent.authenticated).read
+        .listen((_) {
+          if (!result.isCompleted) result.complete();
+        });
+    final failed = registerNamedFunction(SwampEvent.authenticationFailed).read
+        .listen((_) {
+          if (!result.isCompleted) {
+            result.completeError(const SwampAuthenticationException());
+          }
+        });
+    final closed = onClosed.listen((_) {
+      if (!result.isCompleted) {
+        result.completeError(
+          const SwampAuthenticationException(
+            'Connection closed before authentication',
+          ),
+        );
+      }
+    });
+    try {
+      await sendMessage(
+        RpcNetworkerPacket.named(
+          name: SwampCommand.authenticate,
+          data: Uint8List.fromList(utf8.encode(token)),
+        ),
+      );
+      await result.future;
+    } finally {
+      await authenticated.cancel();
+      await failed.cancel();
+      await closed.cancel();
     }
   }
 
@@ -166,6 +212,18 @@ class RawSwampConnection extends NetworkerPipe<Uint8List, RpcNetworkerPacket>
 
   @override
   void sendPacket(Uint8List data, Channel channel) => _channel?.sink.add(data);
+}
+
+/// Thrown when the server rejects protocol-level authentication.
+final class SwampAuthenticationException implements Exception {
+  final String message;
+
+  const SwampAuthenticationException([
+    this.message = 'Swamp authentication failed',
+  ]);
+
+  @override
+  String toString() => 'SwampAuthenticationException: $message';
 }
 
 class SwampConnection extends RawSwampConnection {
@@ -227,6 +285,7 @@ class SwampConnection extends RawSwampConnection {
   SwampConnection({
     required super.server,
     super.protocolVersion,
+    super.accessToken,
     this.roomId,
     this.roomCodeEncoder = encodeRoomCode,
     this.roomCodeDecoder = decodeRoomCode,
@@ -254,6 +313,7 @@ class SwampConnection extends RawSwampConnection {
     Uint8List Function(String)? roomCodeDecoder,
     RoomFlags flags = const RoomFlags(),
     int protocolVersion = kSwampProtocolVersion,
+    String? accessToken,
   }) {
     roomCodeDecoder ??= decodeRoomCode;
     final roomId = address.hasFragment
@@ -267,6 +327,7 @@ class SwampConnection extends RawSwampConnection {
       split: split,
       flags: flags,
       protocolVersion: protocolVersion,
+      accessToken: accessToken,
     );
   }
 
@@ -295,6 +356,7 @@ class SwampConnection extends RawSwampConnection {
     String split = kDefaultSwampSplit,
     RoomFlags flags = const RoomFlags(),
     int protocolVersion = kSwampProtocolVersion,
+    String? accessToken,
   }) async {
     var roomId = address.hasFragment ? address.fragment : null;
     SecretKey key;
@@ -320,6 +382,7 @@ class SwampConnection extends RawSwampConnection {
       flags: flags,
       split: split,
       protocolVersion: protocolVersion,
+      accessToken: accessToken,
     );
     return connection;
   }

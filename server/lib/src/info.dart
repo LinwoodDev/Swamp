@@ -22,6 +22,9 @@ void showPublicInfo(SwampServer server, HttpRequest request) {
           : server.config.description,
       'rooms': server.roomManager.rooms.length,
       'players': server.roomManager.playerCount,
+      'maxPlayersPerRoom': server.config.maxPlayersPerRoom,
+      'maxConcurrentPlayers': server.config.maxConcurrentPlayers,
+      'maxRooms': server.config.maxRooms,
       'protocols': kSwampSupportedProtocols,
     };
 

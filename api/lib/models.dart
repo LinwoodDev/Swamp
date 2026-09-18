@@ -76,6 +76,12 @@ enum SwampEvent with RpcFunctionName {
 
   /// List of players in the room.
   playerList,
+
+  /// Confirmation that connection authentication succeeded.
+  authenticated,
+
+  /// Notification that connection authentication failed.
+  authenticationFailed,
 }
 
 /// Commands sent from the client to the server.
@@ -99,7 +105,10 @@ enum SwampCommand with RpcFunctionName {
   playerList,
 
   /// Set the application identifier for the client.
-  setApplication;
+  setApplication,
+
+  /// Authenticate the connection with a bearer token.
+  authenticate;
 
   @override
   RpcNetworkerMode get mode => RpcNetworkerMode.any;
@@ -215,6 +224,7 @@ enum JoinFailedReason {
   roomFull,
   banned,
   applicationMismatch,
+  serverFull,
   unknown;
 
   int get value => this == unknown ? 0xFF : index;
@@ -227,6 +237,7 @@ enum CreationFailedReason {
   limitReached,
   inRoom,
   unsupportedFlags,
+  unauthorized,
   unknown;
 
   int get value => this == unknown ? 0xFF : index;
