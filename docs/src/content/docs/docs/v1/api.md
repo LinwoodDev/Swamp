@@ -2,6 +2,12 @@
 title: API Reference
 ---
 
+:::caution
+
+This documentation is work in progress and may contain errors or incomplete information. Please reffer to [Official Dart Client](https://github.com/LinwoodDev/Swamp/tree/develop/api) for aditional client implementation details.
+
+:::
+
 The current Swamp wire protocol version is `1`.
 
 :::note
@@ -69,13 +75,13 @@ handshake headers. Use `wss` in production.
 
 ### Available Events
 
-#### Message
+#### Message (`0x00`) {#message}
 
 |                  |                  |
 | ---------------- | ---------------- |
 | Sender (2 Bytes) | Message (Bytes)  |
 
-#### Room Info Update
+#### Room Info Update (`0x01`) {#room-info-update}
 
 If we change a room or request a room info.
 
@@ -85,22 +91,22 @@ If we change a room or request a room info.
 
 See [Room Flags](#room-flags) for more information.
 
-#### Welcome
+#### Welcome (`0x02`) {#welcome}
 
 If you join the server.
 
 No payload.
 
-#### Authenticated
+#### Authenticated (`0x09`) {#authenticated}
 
 The connection is authenticated and may use the remaining Swamp commands.
 No payload.
 
-#### Authentication Failed
+#### Authentication Failed (`0x0a`) {#authentication-failed}
 
 Authentication failed and the server will close the connection. No payload.
 
-#### Kicked from room
+#### Kicked from room (`0x03`) {#kicked-from-room}
 
 If you are kicked from a room.
 
@@ -118,7 +124,7 @@ If you are kicked from a room.
 | 0x03   | Host left        |
 | 0xFF   | Unknown error    |
 
-#### Room join failed
+#### Room join failed (`0x04`) {#room-join-failed}
 
 If you want to join a room but it fails.
 
@@ -137,7 +143,7 @@ If you want to join a room but it fails.
 | 0x04   | Server is full       |
 | 0xFF   | Unknown error        |
 
-#### Room creation failed
+#### Room creation failed (`0x05`) {#room-creation-failed}
 
 If you create a room but it fails.
 
@@ -155,7 +161,7 @@ If you create a room but it fails.
 | 0x03   | Not authorized       |
 | 0xFF   | Unknown error        |
 
-#### Player Joined
+#### Player Joined (`0x06`) {#player-joined}
 
 *Dark Room Event*
 Notification that a player has joined the room.
@@ -164,7 +170,7 @@ Notification that a player has joined the room.
 | ------------------- |
 | Player ID (2 Bytes) |
 
-#### Player Left
+#### Player Left (`0x07`) {#player-left}
 
 *Dark Room Event*
 Notification that a player has left the room.
@@ -173,7 +179,7 @@ Notification that a player has left the room.
 | ------------------- |
 | Player ID (2 Bytes) |
 
-#### Player List
+#### Player List (`0x08`) {#player-list}
 
 *Dark Room Event (toggleable), but returns empty error if not permitted*
 List of players currently in the room.
@@ -184,7 +190,7 @@ List of players currently in the room.
 
 ### Available Commands
 
-#### Authenticate
+#### Authenticate (`0x07`) {#authenticate}
 
 Must be the first command when authentication is required.
 
@@ -192,7 +198,7 @@ Must be the first command when authentication is required.
 | -------------------- |
 | Access token (UTF-8) |
 
-#### Send Message
+#### Send Message (`0x00`) {#send-message}
 
 |                     |                 |
 | ------------------- | --------------- |
@@ -204,17 +210,17 @@ There are some special player ids:
 - `0` - Send to all players
 - `1` - Send to the host
 
-#### Join Room
+#### Join Room (`0x01`) {#join-room}
 
 |                 |
 | --------------- |
 | Room ID (Bytes) |
 
-#### Leave Room
+#### Leave Room (`0x02`) {#leave-room}
 
 No payload.
 
-#### Create Room
+#### Create Room (`0x03`) {#create-room}
 
 |                |                                 |
 | -------------- | ------------------------------- |
@@ -222,7 +228,7 @@ No payload.
 
 If Max Players is not set or set to `0`, the server will use the default value.
 
-#### Kick Player
+#### Kick Player (`0x04`) {#kick-player}
 
 *Host only*
 
@@ -230,11 +236,11 @@ If Max Players is not set or set to `0`, the server will use the default value.
 | ------------------- | ---------------- |
 | Player ID (2 Bytes) | Message (String) |
 
-#### Get Connected Players
+#### Get Connected Players (`0x05`) {#get-connected-players}
 
 No payload.
 
-#### Set Application
+#### Set Application (`0x06`) {#set-application}
 
 Allows you to restrict the supported rooms.
 This is useful if you want to prevent users from joining rooms created by other applications (e.g. different games).

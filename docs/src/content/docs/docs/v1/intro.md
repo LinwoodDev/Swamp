@@ -4,7 +4,7 @@ title: Introduction
 
 > Welcome to Swamp, the universal simple web-socket application messaging protocol
 
-:::note
+:::caution
 This documentation is work in progress and may contain errors or incomplete information.
 Please open an issue on [GitHub](https://github.com/LinwoodDev/Swamp/issues) if you find any problems or have suggestions.
 :::
