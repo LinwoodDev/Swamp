@@ -18,7 +18,7 @@ class RoomsProgram extends ConsoleProgram {
   @override
   void run(String label, List<String> args) {
     if (args.length > 1) {
-      print('Usage: room ${getUsage()}');
+      print('Usage: rooms ${getUsage()}');
       return;
     }
     final page = args.isEmpty ? 1 : int.tryParse(args[0]);
@@ -26,21 +26,29 @@ class RoomsProgram extends ConsoleProgram {
       print("Invalid page number");
       return;
     }
-    final rooms = roomManager.rooms
-        .skip((page - 1) * kPageSize)
-        .take(kPageSize + 1)
-        .toList();
-    print("${rooms.length} room${rooms.length == 1 ? '' : 's'} (Page $page):");
-    if (rooms.isEmpty) {
+    final allRooms = roomManager.rooms.toList();
+    final pageCount = (allRooms.length / kPageSize).ceil();
+    if (allRooms.isEmpty) {
       print("No rooms found");
       return;
     }
+    if (page > pageCount) {
+      print(
+        "Page $page is out of range. Choose a page between 1 and $pageCount.",
+      );
+      return;
+    }
+    final offset = (page - 1) * kPageSize;
+    final rooms = allRooms.skip(offset).take(kPageSize).toList();
+    print(
+      "${allRooms.length} room${allRooms.length == 1 ? '' : 's'} (Page $page/$pageCount):",
+    );
     for (final room in rooms.asMap().entries.take(kPageSize)) {
       print(
-        "${room.key + 1}. ${encodeRoomCode(room.value.roomId)} (${room.value.players.length} players)",
+        "${offset + room.key + 1}. ${encodeRoomCode(room.value.roomId)} (${room.value.players.length}/${room.value.maxPlayers} players)",
       );
     }
-    if (rooms.length > kPageSize) {
+    if (page < pageCount) {
       print("More rooms available. Use 'rooms ${page + 1}' to see more.");
     }
   }

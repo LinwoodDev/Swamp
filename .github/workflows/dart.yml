@@ -40,12 +40,12 @@ jobs:
           dart analyze --fatal-infos
       - name: Run build_runner
         if: matrix.projects != 'tools'
-        run: dart run build_runner build --delete-conflicting-outputs
+        run: dart run build_runner build
       - name: Run format
         run: dart format .
       - name: Test for git changes
         run: git diff --exit-code
       - name: Run tests
-        if: matrix.projects == 'server'
+        if: matrix.projects != 'tools'
         run: |
           dart test --reporter=expanded

@@ -26,7 +26,7 @@ packages:
     source: hosted
     version: "2.0.3"
   args:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: args
       sha256: d0481093c50b1da8910eb0bb301626d4d8eb7284aa739614d2b394ee09e3ea04
@@ -133,8 +133,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/consoler"
-      ref: ca62a7ca874e32f12861f45848bf392e172429d2
-      resolved-ref: ca62a7ca874e32f12861f45848bf392e172429d2
+      ref: "474f28052d3294b37827f71200c573f8668f7cdb"
+      resolved-ref: "474f28052d3294b37827f71200c573f8668f7cdb"
       url: "https://github.com/LinwoodDev/dart_pkgs.git"
     source: git
     version: "1.0.0"

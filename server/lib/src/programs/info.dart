@@ -1,8 +1,6 @@
 import 'package:consoler/consoler.dart';
 import 'package:swamp/src/server.dart';
 
-const kPageSize = 10;
-
 /// A simple console program to display server information.
 class InfoProgram extends ConsoleProgram {
   final SwampServer server;

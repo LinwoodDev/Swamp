@@ -33,10 +33,10 @@ class RoomProgram extends ConsoleProgram {
       print("Room not found");
       return;
     }
-    print("Room $roomId:");
+    print("Room ${encodeRoomCode(roomId)}:");
     print("Flags: ${room.roomFlags.value.toRadixString(2).padLeft(32, '0')}");
     print(
-      "Players (${room.players.length}): ${room.players.map((e) => e.toString()).join(', ')}",
+      "Players (${room.players.length}/${room.maxPlayers}): ${room.players.map((e) => e.toString()).join(', ')}",
     );
   }
 }

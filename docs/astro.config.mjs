@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
 import starlight from "@astrojs/starlight";
 import react from "@astrojs/react";
 import remarkHeadingID from "remark-heading-id";
@@ -10,7 +11,7 @@ import manifest from "./webmanifest.json";
 export default defineConfig({
   site: "https://swamp.linwood.dev",
   markdown: {
-    remarkPlugins: [remarkHeadingID, remarkGemoji],
+    processor: unified({ remarkPlugins: [remarkHeadingID, remarkGemoji] }),
   },
   integrations: [
     starlight({
@@ -41,6 +42,7 @@ export default defineConfig({
           items: [
             // Each item here is one entry in the navigation menu.
             { label: "Introduction", slug: "docs/v1/intro" },
+            { label: "Setup", slug: "docs/v1/setup" },
             { label: "API", slug: "docs/v1/api" },
           ],
         },

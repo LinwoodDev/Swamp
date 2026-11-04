@@ -42,6 +42,7 @@ class SwampServer extends NetworkerSocketServer {
     duration: Duration(seconds: 10),
   );
   Future<void>? _closeFuture;
+  final bool _withConsole;
 
   /// The current server configuration.
   SwampConfig get config => configManager.config;
@@ -58,7 +59,7 @@ class SwampServer extends NetworkerSocketServer {
     super.port, {
     ConfigManager? configManager,
     this.authentication,
-    bool withConsole = true,
+    this._withConsole = true,
     LogLevel? minLogLevel,
     super.securityContext,
   }) : configManager = configManager ?? ConfigManager() {
@@ -74,7 +75,6 @@ class SwampServer extends NetworkerSocketServer {
       'info': InfoProgram(this),
     });
     _consoler.minLogLevel = minLogLevel ?? _consoler.minLogLevel;
-    if (withConsole) _consoler.run();
   }
 
   @override
@@ -209,9 +209,23 @@ class SwampServer extends NetworkerSocketServer {
     }
   }
 
-  /// Logs a message to the console.
-  void log(Object? message, [LogLevel? level]) =>
+  /// Starts the interactive console after the server is listening.
+  @override
+  Future<void> init() async {
+    await super.init();
+    if (_withConsole) _consoler.run();
+  }
+
+  /// Logs with an interactive prompt or plain lines for unattended servers.
+  void log(Object? message, [LogLevel? level]) {
+    if (_withConsole) {
       _consoler.print(message, level: level);
+    } else if (level == null || level.index >= _consoler.minLogLevel.index) {
+      stdout.writeln(
+        '${level == null ? '' : '[${level.name.toUpperCase()}] '}$message',
+      );
+    }
+  }
 
   void _initFunctions() {
     clientConnect.listen((event) {

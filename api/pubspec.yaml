@@ -26,11 +26,11 @@ dependencies:
       ref: da60928e30f783a68e2daa48911f76b67c730c09
       path: packages/networker/networker_crypto
   rxdart: ^0.28.0
-  web_socket_channel: ^3.0.2
+  web_socket_channel: ^3.0.3
   # path: ^1.8.0
 
 dev_dependencies:
-  build_runner: ^2.4.15
-  dartdoc: ^9.0.0
-  lints: ^6.0.0
-  test: ^1.24.0
+  build_runner: ^2.16.1
+  dartdoc: ^9.0.9
+  lints: ^6.1.0
+  test: ^1.32.0

@@ -45,72 +45,88 @@ final class SwampConfig with SwampConfigMappable {
     this.noDarkRooms = false,
   });
 
-  /// Creates a [SwampConfig] merging default values, environment variables, and provided parameters.
-  ///
-  /// Environment variables take precedence over defaults, and explicit parameters take precedence over environment variables.
+  /// Merges defaults, file values, environment values, then explicit overrides.
+  /// Invalid values are rejected rather than silently falling back to defaults.
   factory SwampConfig.withEnvironment(
     Map<String, dynamic> data, {
+    Map<String, String>? environment,
     String? description,
     int? maxPlayersPerRoom,
     int? maxConcurrentPlayers,
     int? maxRooms,
     bool? noDarkRooms,
   }) {
-    final descriptionEnv =
-        Platform.environment[descriptionEnvironment] ??
-        String.fromEnvironment(descriptionEnvironment);
-    final maxPlayersPerRoomEnvString =
-        Platform.environment[maxPlayersPerRoomEnvironment] ??
-        (int.fromEnvironment(maxPlayersPerRoomEnvironment, defaultValue: -1) ==
-                -1
-            ? null
-            : int.fromEnvironment(maxPlayersPerRoomEnvironment).toString());
-    final maxPlayersPerRoomEnv = maxPlayersPerRoomEnvString != null
-        ? int.tryParse(maxPlayersPerRoomEnvString)
-        : null;
-    final maxConcurrentPlayersEnvString =
-        Platform.environment[maxConcurrentPlayersEnvironment] ??
-        (int.fromEnvironment(
-                  maxConcurrentPlayersEnvironment,
-                  defaultValue: -1,
-                ) ==
-                -1
-            ? null
-            : int.fromEnvironment(maxConcurrentPlayersEnvironment).toString());
-    final maxConcurrentPlayersEnv = maxConcurrentPlayersEnvString != null
-        ? int.tryParse(maxConcurrentPlayersEnvString)
-        : null;
-    final maxRoomsEnvString =
-        Platform.environment[maxRoomsEnvironment] ??
-        (int.fromEnvironment(maxRoomsEnvironment, defaultValue: -1) == -1
-            ? null
-            : int.fromEnvironment(maxRoomsEnvironment).toString());
-    final maxRoomsEnv = maxRoomsEnvString != null
-        ? int.tryParse(maxRoomsEnvString)
-        : null;
+    final env = environment ?? Platform.environment;
+    const compileTime = {
+      if (bool.hasEnvironment(descriptionEnvironment))
+        descriptionEnvironment: String.fromEnvironment(descriptionEnvironment),
+      if (bool.hasEnvironment(maxPlayersPerRoomEnvironment))
+        maxPlayersPerRoomEnvironment: String.fromEnvironment(
+          maxPlayersPerRoomEnvironment,
+        ),
+      if (bool.hasEnvironment(maxConcurrentPlayersEnvironment))
+        maxConcurrentPlayersEnvironment: String.fromEnvironment(
+          maxConcurrentPlayersEnvironment,
+        ),
+      if (bool.hasEnvironment(maxRoomsEnvironment))
+        maxRoomsEnvironment: String.fromEnvironment(maxRoomsEnvironment),
+      if (bool.hasEnvironment(noDarkRoomsEnvironment))
+        noDarkRoomsEnvironment: String.fromEnvironment(noDarkRoomsEnvironment),
+    };
+    String? value(String name) => env[name] ?? compileTime[name];
+    int? integer(String name, int? override) {
+      if (override != null) return override;
+      final raw = value(name);
+      if (raw == null) return null;
+      final parsed = int.tryParse(raw.trim());
+      if (parsed == null) throw FormatException('$name must be an integer.');
+      return parsed;
+    }
 
-    final noDarkRoomsEnvString =
-        Platform.environment[noDarkRoomsEnvironment] ??
-        (bool.fromEnvironment(noDarkRoomsEnvironment) ? 'true' : null);
-    final noDarkRoomsEnv =
-        noDarkRoomsEnvString?.toLowerCase() == 'true' ||
-        noDarkRoomsEnvString == '1';
+    bool? boolean(String name, bool? override) {
+      if (override != null) return override;
+      final raw = value(name)?.trim().toLowerCase();
+      return switch (raw) {
+        null => null,
+        'true' || '1' => true,
+        'false' || '0' => false,
+        _ => throw FormatException('$name must be true, false, 1, or 0.'),
+      };
+    }
 
-    return SwampConfigMapper.fromMap({
+    final config = SwampConfigMapper.fromMap({
       ...data,
-      if (descriptionEnv.isNotEmpty) 'description': descriptionEnv,
-      if (maxPlayersPerRoomEnv != null && maxPlayersPerRoomEnv >= 0)
-        'maxPlayersPerRoom': maxPlayersPerRoomEnv,
-      if (maxConcurrentPlayersEnv != null && maxConcurrentPlayersEnv >= 0)
-        'maxConcurrentPlayers': maxConcurrentPlayersEnv,
-      if (maxRoomsEnv != null && maxRoomsEnv >= 0) 'maxRooms': maxRoomsEnv,
-      if (noDarkRoomsEnv) 'noDarkRooms': true,
-      'noDarkRooms': ?noDarkRooms,
-      'maxPlayersPerRoom': ?maxPlayersPerRoom,
-      'maxConcurrentPlayers': ?maxConcurrentPlayers,
-      'maxRooms': ?maxRooms,
-      'description': ?description,
+      'description': ?(description ?? value(descriptionEnvironment)),
+      'maxPlayersPerRoom': ?integer(
+        maxPlayersPerRoomEnvironment,
+        maxPlayersPerRoom,
+      ),
+      'maxConcurrentPlayers': ?integer(
+        maxConcurrentPlayersEnvironment,
+        maxConcurrentPlayers,
+      ),
+      'maxRooms': ?integer(maxRoomsEnvironment, maxRooms),
+      'noDarkRooms': ?boolean(noDarkRoomsEnvironment, noDarkRooms),
     });
+    config.validate();
+    return config;
+  }
+
+  /// Checks limits against the room protocol and unlimited-value conventions.
+  void validate() {
+    if (maxPlayersPerRoom < 1 || maxPlayersPerRoom > 65535) {
+      throw const FormatException(
+        'maxPlayersPerRoom must be between 1 and 65535.',
+      );
+    }
+    if (maxConcurrentPlayers < 0) {
+      throw const FormatException(
+        'maxConcurrentPlayers must be zero or greater.',
+      );
+    }
+    if (maxRooms < 0) {
+      throw const FormatException('maxRooms must be zero or greater.');
+    }
   }
 
   int get flags => noDarkRooms ? 0x01 : 0x00;
@@ -122,23 +138,33 @@ final class ConfigManager {
 
   SwampConfig get config => _config;
 
-  ConfigManager([SwampConfig? config])
-    : _config = config ?? SwampConfig.withEnvironment({});
+  /// Configuration file used by startup and console reloads.
+  final String path;
+  final Map<String, String>? environment;
 
+  ConfigManager([SwampConfig? config]) : this.withOptions(config: config);
+
+  ConfigManager.withOptions({
+    SwampConfig? config,
+    this.path = 'swamp.json',
+    this.environment,
+  }) : _config =
+           config ?? SwampConfig.withEnvironment({}, environment: environment) {
+    _config.validate();
+  }
+
+  /// Replaces the configuration only after a complete, successful load.
+  /// A missing file uses defaults and environment values.
   Future<void> load() async {
-    final file = File('swamp.json');
-    if (!await file.exists()) {
-      _config = SwampConfig.withEnvironment({});
-      return;
-    }
-    try {
-      final json = await file.readAsString();
-      final data = jsonDecode(json);
-      if (data is Map<String, dynamic>) {
-        _config = SwampConfig.withEnvironment(data);
+    final file = File(path);
+    Map<String, dynamic> data = {};
+    if (await file.exists()) {
+      final decoded = jsonDecode(await file.readAsString());
+      if (decoded is! Map<String, dynamic>) {
+        throw FormatException('$path must contain a JSON object.');
       }
-    } catch (e) {
-      print('Failed to load swamp.json: $e');
+      data = decoded;
     }
+    _config = SwampConfig.withEnvironment(data, environment: environment);
   }
 }

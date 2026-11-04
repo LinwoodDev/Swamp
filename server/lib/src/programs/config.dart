@@ -8,16 +8,28 @@ class ConfigProgram extends ConsoleProgram {
 
   ConfigProgram(this.server);
   @override
-  String getDescription() => "Stop the server";
+  String getDescription() => "Show or reload the server configuration";
 
   @override
-  void run(String label, List<String> args) {
-    if (args.isNotEmpty) {
-      print('Usage: config');
+  String getUsage() => '[reload]';
+
+  @override
+  Future<void> run(String label, List<String> args) async {
+    if (args.length > 1 || (args.isNotEmpty && args.single != 'reload')) {
+      print('Usage: config ${getUsage()}');
       return;
     }
+    if (args.isNotEmpty) {
+      try {
+        await server.configManager.load();
+        print('Configuration reloaded from ${server.configManager.path}.');
+      } catch (error) {
+        print('Failed to reload configuration: $error');
+        return;
+      }
+    }
     final config = server.config;
-    print("""Configuration:
+    print("""Configuration (${server.configManager.path}):
 - Description: ${json.encode(config.description)}
 - Max Players Per Room: ${config.maxPlayersPerRoom}
 - Max Concurrent Players: ${config.maxConcurrentPlayers == 0 ? 'unlimited' : config.maxConcurrentPlayers}

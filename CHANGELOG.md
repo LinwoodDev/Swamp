@@ -2,6 +2,8 @@
 
 <!--ENTER CHANGELOG HERE-->
 
+* Add server startup flags, clarify configuration precedence, and improve console commands.
+
 ## 0.1.1 (2026-03-20)
 
 * Improve protocol version handling

@@ -9,8 +9,12 @@ class StopProgram extends ConsoleProgram {
   String getDescription() => "Stop the server";
 
   @override
-  void run(String label, List<String> args) {
+  Future<void> run(String label, List<String> args) async {
+    if (args.isNotEmpty) {
+      print("Usage: stop");
+      return;
+    }
     print("Stopping server...");
-    server.close();
+    await server.close();
   }
 }

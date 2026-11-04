@@ -208,41 +208,7 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 100));
     });
 
-    test('Client can send message to room', () async {
-      final messageReceived = Completer<String>();
-      const message = 'Hello, World!';
-
-      var messageSubscription = client1
-          .registerNamedFunction(SwampEvent.message)
-          .read
-          .listen((packet) {
-            try {
-              final receivedMessage = String.fromCharCodes(
-                packet.data.sublist(2),
-              );
-              messageReceived.complete(receivedMessage);
-            } catch (e) {
-              messageReceived.completeError(e);
-            }
-          });
-
-      // Send message from client2 to the room
-      client2.sendNamedFunction(
-        SwampCommand.message,
-        Uint8List.fromList([0, 0, ...message.codeUnits]),
-      );
-
-      try {
-        final receivedMessage = await messageReceived.future;
-
-        // Validate received message
-        expect(receivedMessage, message);
-      } finally {
-        messageSubscription.cancel();
-      }
-    });
-
-    test('Messages include correct sender ID', () async {
+    test('Room messages include the payload and sender ID', () async {
       final messageReceived = Completer<Map<String, dynamic>>();
       const message = 'Message from client 2';
 
