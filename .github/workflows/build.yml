@@ -198,11 +198,20 @@ jobs:
             checksums.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: dart-lang/setup-dart@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Extract release notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: .
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: dart tools/set_version.dart --notes "${RELEASE_TAG#v}" > release-notes.txt
       - name: Release
         uses: softprops/action-gh-release@v3
         continue-on-error: true
         if: startsWith(github.ref, 'refs/tags/v')
         with:
+          body_path: release-notes.txt
           files: |
             linwood-swamp-server-linux-x86_64.tar.gz
             linwood-swamp-server-linux-arm64.tar.gz

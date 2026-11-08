@@ -61,3 +61,43 @@ dart run
 ```
 
 Fork the project and create a pull request to add your code to the `develop` branch.
+
+## Changelog and releases
+
+Add user-facing changes under `## Unreleased` in `CHANGELOG.md`. Keep this
+section present, even when empty, and do not add a trailing newline to the file.
+Include features and fixes that affect users; omit documentation and internal
+changes such as dependency updates, CI, refactoring, and development tooling.
+
+Run the **Release** workflow manually on the branch to publish. It releases
+that branch's current version and requires an explicit `next_version` for
+subsequent development. For example, when the current version is `0.2.0`,
+enter `0.2.1` to publish `v0.2.0` and then continue development at `0.2.1`.
+Enable `stable` for a stable release; releases from `main` are always stable.
+
+The workflow finalizes the Unreleased notes, keeps an empty Unreleased section,
+tags the release commit, and updates the server and API to `next_version`.
+Both versions are checked locally before commits and the tag are pushed.
+Release notes come from the published version's changelog section. The existing
+build and post-release workflows attach artifacts and update stable/nightly tags.
+The `CI_PAT` repository secret is required so publishing triggers those workflows.
+
+For local preparation, use an explicit version:
+
+```bash
+dart tools/set_version.dart 0.2.0
+```
+
+To finalize notes for the current version or change only the development version:
+
+```bash
+dart tools/set_version.dart --changelog
+dart tools/set_version.dart 0.2.1 --no-changelog
+```
+
+Empty notes and duplicate release sections are rejected before release files
+are changed. To extract notes without changing files:
+
+```bash
+dart tools/set_version.dart --notes 0.2.0
+```

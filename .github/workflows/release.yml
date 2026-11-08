@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      next_version:
+        description: Development version after this release (for example 0.2.1)
+        required: true
+        type: string
+      stable:
+        description: Publish a stable release (main is always stable)
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref_type == 'branch'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.CI_PAT }}
+          fetch-depth: 0
+      - uses: dart-lang/setup-dart@v1
+      - name: Prepare release and next development version
+        id: prepare
+        env:
+          NEXT_VERSION: ${{ inputs.next_version }}
+          RELEASE_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.email "ci@linwood.dev"
+          git config user.name "Linwood CI"
+          git pull --ff-only origin "$RELEASE_BRANCH"
+          VERSION=$(sed -n 's/^version: //p' server/pubspec.yaml)
+          if git show-ref --verify --quiet "refs/tags/v$VERSION"; then
+            echo "Version $VERSION has already been tagged."
+            exit 1
+          fi
+          dart tools/set_version.dart --changelog
+          dart tools/set_version.dart --notes "$VERSION" > "$RUNNER_TEMP/release-notes.txt"
+          git add CHANGELOG.md server/pubspec.yaml api/pubspec.yaml
+          git commit -m "Add changelog of v$VERSION"
+          git tag -a "v$VERSION" -m "Release $VERSION"
+          dart tools/set_version.dart "$NEXT_VERSION" --no-changelog
+          # Update the local API version in the server lockfile.
+          dart pub get -C server
+          git add server/pubspec.yaml api/pubspec.yaml server/pubspec.lock
+          git commit -m "Update version to $NEXT_VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # Validate both versions locally before publishing either commit.
+          git push --atomic origin "HEAD:refs/heads/$RELEASE_BRANCH" "refs/tags/v$VERSION"
+      - name: Create release
+        uses: softprops/action-gh-release@v3
+        with:
+          token: ${{ secrets.CI_PAT }}
+          tag_name: v${{ steps.prepare.outputs.version }}
+          name: v${{ steps.prepare.outputs.version }}
+          prerelease: ${{ !inputs.stable && github.ref != 'refs/heads/main' }}
+          body_path: ${{ runner.temp }}/release-notes.txt
