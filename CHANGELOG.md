@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.0 (2026-11-26)
+
 * Add optional authentication and room creation authorization, including client access token support.
 * Add environment configuration for server player and room limits.
 * Add server startup flags, clarify configuration precedence, and improve console commands.
